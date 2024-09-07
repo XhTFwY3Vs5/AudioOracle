@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Oracle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        #result {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+        input, textarea {
+            padding: 5px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        input[type="number"] {
+            width: 80px; /* Adjusted width for smaller input */
+        }
+        textarea {
+            width: 300px; /* Adjusted width for wider textarea */
+        }
+        label {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        #countdown {
+            font-size: 1.5em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <img src="img/audioOracleLogo.webp" width=150px height=150px></img>
+    <br/><br/>
+    <div id="result">Press Start</div>
+    <label for="interval">Delay between rolls (seconds):</label>
+    <input id="interval" type="number" value="20" min="1" />
+    <label for="phrases">Enter phrases (one per line):</label>
+    <textarea id="phrases" rows="10">no, and...
+no
+no, but...
+yes, but...
+yes
+yes, and...</textarea>
+    <label for="timer">Stop after (minutes, 0 for unlimited):</label>
+    <input id="timer" type="number" value="0" min="0" />
+    <button onclick="toggleRolling()">Start Rolling</button>
+    <div id="countdown"></div>
+
+    <script>
+        let isRolling = false;
+        let intervalId;
+        let timerId;
+        let countdownId;
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Load saved interval, phrases, and timer from localStorage
+            const savedInterval = localStorage.getItem('interval');
+            const savedPhrases = localStorage.getItem('phrases');
+            const savedTimer = localStorage.getItem('timer');
+
+            if (savedInterval) {
+                document.getElementById('interval').value = savedInterval;
+            }
+            if (savedPhrases) {
+                document.getElementById('phrases').value = savedPhrases;
+            }
+            if (savedTimer) {
+                document.getElementById('timer').value = savedTimer;
+            }
+        });
+
+        function getPhrases() {
+            const phrasesText = document.getElementById('phrases').value;
+            return phrasesText.split('\n').filter(phrase => phrase.trim() !== '');
+        }
+
+        function rollDice() {
+            const phrases = getPhrases();
+            const roll = Math.floor(Math.random() * phrases.length);  // Generate random number based on number of entries
+            const phrase = phrases[roll];
+            document.getElementById('result').textContent = `Rolled: ${phrase}`;
+            speakPhrase(phrase);
+        }
+
+        function speakPhrase(phrase) {
+            const utterance = new SpeechSynthesisUtterance(phrase);
+            speechSynthesis.speak(utterance);
+        }
+
+        let wakeLock = null; // Store the WakeLockSentinel object
+
+        function toggleRolling() {
+            const button = document.querySelector('button');
+            const delayInput = document.getElementById('interval');
+            const timerInput = document.getElementById('timer');
+            const delay = Math.max(1, parseInt(delayInput.value)) * 1000;  // Convert seconds to milliseconds
+            const timer = Math.max(0, parseInt(timerInput.value)) * 60000;  // Convert minutes to milliseconds
+
+            if (isRolling) {
+                clearInterval(intervalId);
+                clearTimeout(timerId);
+                clearInterval(countdownId);
+                button.textContent = "Start Rolling";
+                document.getElementById('result').textContent = "Stopped";
+                document.getElementById('countdown').textContent = "";
+
+                // Release wake lock if it's active
+                if (wakeLock) {
+                    wakeLock.release().then(() => {
+                        console.log('Wake lock released');
+                        wakeLock = null;
+                    });
+                }
+            } else {
+                intervalId = setInterval(rollDice, delay);  // Roll every specified number of seconds
+                button.textContent = "Stop Rolling";
+                rollDice();  // Roll immediately on start
+
+                if (timer > 0) {
+                    const endTime = Date.now() + timer;
+                    countdownId = setInterval(() => {
+                        const remainingTime = endTime - Date.now();
+                        if (remainingTime <= 0) {
+                            clearInterval(intervalId);
+                            clearInterval(countdownId);
+                            button.textContent = "Start Rolling";
+                            document.getElementById('result').textContent = "Stopped";
+                            document.getElementById('countdown').textContent = "";
+                            isRolling = false;
+                            
+                            if (wakeLock) {
+                                wakeLock.release().then(() => {
+                                    console.log('Wake lock released');
+                                    wakeLock = null;
+                                });
+                            }
+                        } else {
+                            const hours = Math.floor(remainingTime / 3600000);
+                            const minutes = Math.floor((remainingTime % 3600000) / 60000);
+                            const seconds = Math.floor((remainingTime % 60000) / 1000);
+                            document.getElementById('countdown').textContent = 
+                                hours > 0 ? `${hours}:${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}` :
+                                `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                        }
+                    }, 1000);
+                }
+
+                if ('wakeLock' in navigator) {
+                    navigator.wakeLock.request('screen').then((sentinel) => {
+                        wakeLock = sentinel;
+                        console.log('Wake lock acquired');
+                    }).catch((err) => {
+                        console.error('Failed to acquire wake lock:', err);
+                    });
+                }
+            }
+            isRolling = !isRolling;
+
+            // Save interval, phrases, and timer to localStorage
+            localStorage.setItem('interval', delayInput.value);
+            localStorage.setItem('phrases', document.getElementById('phrases').value);
+            localStorage.setItem('timer', timerInput.value);
+        }
+    </script>
+</body>
+</html>
