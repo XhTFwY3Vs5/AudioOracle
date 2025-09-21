@@ -1,6 +1,6 @@
 # Audio Oracle
 
-The Audio Oracle is a simple, web-based tool designed to assist solo role-playing game (RPG) players by providing randomized prompts and answers through spoken word. It's perfect for generating quick decisions, plot hooks, or character reactions when you don't have a GM or dice handy.
+The Audio Oracle is a simple, web-based tool designed to assist solo role-playing game (RPG) players by providing randomized prompts and answers through spoken word. It's perfect for generating answers, quick decisions, plot hooks, or character reactions when you don't have a GM or dice handy.  Put it on a loop with a customizable delay and you can play fully in your mind while walking, waiting in line, or lying in bed!
 
 ## Features
 
