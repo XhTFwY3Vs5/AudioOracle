@@ -5,95 +5,179 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio Oracle</title>
     <style>
+        /* A simple CSS reset and better box-sizing */
+        :root {
+            --spacing-small: 8px;
+            --spacing-medium: 16px;
+            --spacing-large: 24px;
+            --border-radius: 5px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: var(--spacing-medium);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* Main container for content */
+        .container {
+            width: 100%;
+            max-width: 600px; /* Prevents it from becoming too wide on desktops */
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
+            gap: var(--spacing-large); /* Consistent spacing between all direct children */
         }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+        }
+
         #result {
             font-size: 2em;
-            margin-bottom: 20px;
+            font-weight: bold;
+            color: #444;
+            text-align: center;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 1em;
-            margin-bottom: 20px;
+
+        /* Form styling */
+        .oracle-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-medium); /* Consistent spacing between form groups */
         }
-        input, textarea {
-            padding: 5px;
-            font-size: 1em;
-            margin-bottom: 10px;
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-small);
         }
-        input[type="number"] {
-            width: 80px; /* Adjusted width for smaller input */
-        }
-        textarea {
-            width: 300px; /* Adjusted width for wider textarea */
-        }
+
         label {
-            font-size: 1.2em;
-            margin-bottom: 10px;
+            font-size: 1.1em;
+            font-weight: 500;
         }
+        
+        /* Styles for text inputs and the larger textarea */
+        input, textarea {
+            width: 100%; /* Make inputs and textarea responsive */
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
+            background-color: #fff;
+        }
+        
+        textarea {
+            min-height: 200px; /* Made the textarea significantly taller */
+            resize: vertical; /* Allow user to resize it vertically */
+        }
+        
+        button {
+            padding: 12px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
         #countdown {
             font-size: 1.5em;
-            margin-top: 10px;
+            font-weight: 500;
+            color: #555;
         }
     </style>
 </head>
 <body>
-    <img src="img/audioOracleLogo.webp" width=150px height=150px></img>
-    <br/><br/>
-    <div id="result">Press Start</div>
-    <label for="interval">Delay between rolls (seconds):</label>
-    <input id="interval" type="number" value="20" min="1" />
-    <label for="phrases">Enter phrases (one per line):</label>
-    <textarea id="phrases" rows="10">no, and...
+
+    <main class="container">
+        
+        <img src="img/audioOracleLogo.webp" alt="Audio Oracle Logo" class="logo">
+        
+        <div id="result">Press Start</div>
+        
+        <form class="oracle-form" onsubmit="return false;">
+            <div class="form-group">
+                <label for="interval">Delay between rolls (seconds):</label>
+                <input id="interval" type="number" value="20" min="1">
+            </div>
+
+            <div class="form-group">
+                <label for="phrases">Enter phrases (one per line):</label>
+                <textarea id="phrases" rows="10">no, and...
 no
 no, but...
 yes, but...
 yes
 yes, and...</textarea>
-    <label for="timer">Stop after (minutes, 0 for unlimited):</label>
-    <input id="timer" type="number" value="0" min="0" />
-    <button onclick="toggleRolling()">Start Rolling</button>
-    <div id="countdown"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="timer">Stop after (minutes, 0 for unlimited):</label>
+                <input id="timer" type="number" value="0" min="0">
+            </div>
+            
+            <button onclick="toggleRolling()">Start Rolling</button>
+        </form>
+
+        <div id="countdown"></div>
+
+    </main>
 
     <script>
+        // Caching DOM elements for better performance
+        const resultDiv = document.getElementById('result');
+        const intervalInput = document.getElementById('interval');
+        const phrasesTextarea = document.getElementById('phrases');
+        const timerInput = document.getElementById('timer');
+        const countdownDiv = document.getElementById('countdown');
+        const toggleButton = document.querySelector('button');
+
         let isRolling = false;
         let intervalId;
         let timerId;
         let countdownId;
+        let wakeLock = null; // Store the WakeLockSentinel object
 
-        document.addEventListener('DOMContentLoaded', (event) => {
-            // Load saved interval, phrases, and timer from localStorage
-            const savedInterval = localStorage.getItem('interval');
-            const savedPhrases = localStorage.getItem('phrases');
-            const savedTimer = localStorage.getItem('timer');
-
-            if (savedInterval) {
-                document.getElementById('interval').value = savedInterval;
-            }
-            if (savedPhrases) {
-                document.getElementById('phrases').value = savedPhrases;
-            }
-            if (savedTimer) {
-                document.getElementById('timer').value = savedTimer;
-            }
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved settings from localStorage
+            intervalInput.value = localStorage.getItem('interval') || '20';
+            phrasesTextarea.value = localStorage.getItem('phrases') || 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
+            timerInput.value = localStorage.getItem('timer') || '0';
         });
 
         function getPhrases() {
-            const phrasesText = document.getElementById('phrases').value;
-            return phrasesText.split('\n').filter(phrase => phrase.trim() !== '');
+            return phrasesTextarea.value.split('\n').filter(phrase => phrase.trim() !== '');
         }
 
         function rollDice() {
             const phrases = getPhrases();
-            const roll = Math.floor(Math.random() * phrases.length);  // Generate random number based on number of entries
+            if (phrases.length === 0) {
+                resultDiv.textContent = "Add phrases!";
+                return;
+            }
+            const roll = Math.floor(Math.random() * phrases.length);
             const phrase = phrases[roll];
-            document.getElementById('result').textContent = `Rolled: ${phrase}`;
+            resultDiv.textContent = `${phrase}`;
             speakPhrase(phrase);
         }
 
@@ -101,80 +185,67 @@ yes, and...</textarea>
             const utterance = new SpeechSynthesisUtterance(phrase);
             speechSynthesis.speak(utterance);
         }
+        
+        async function releaseWakeLock() {
+            if (wakeLock) {
+                await wakeLock.release();
+                wakeLock = null;
+                console.log('Wake lock released');
+            }
+        }
 
-        let wakeLock = null; // Store the WakeLockSentinel object
+        function stopAllTimers() {
+            clearInterval(intervalId);
+            clearTimeout(timerId);
+            clearInterval(countdownId);
+            toggleButton.textContent = "Start Rolling";
+            resultDiv.textContent = "Stopped";
+            countdownDiv.textContent = "";
+            isRolling = false;
+            releaseWakeLock();
+        }
 
         function toggleRolling() {
-            const button = document.querySelector('button');
-            const delayInput = document.getElementById('interval');
-            const timerInput = document.getElementById('timer');
-            const delay = Math.max(1, parseInt(delayInput.value)) * 1000;  // Convert seconds to milliseconds
-            const timer = Math.max(0, parseInt(timerInput.value)) * 60000;  // Convert minutes to milliseconds
-
             if (isRolling) {
-                clearInterval(intervalId);
-                clearTimeout(timerId);
-                clearInterval(countdownId);
-                button.textContent = "Start Rolling";
-                document.getElementById('result').textContent = "Stopped";
-                document.getElementById('countdown').textContent = "";
-
-                // Release wake lock if it's active
-                if (wakeLock) {
-                    wakeLock.release().then(() => {
-                        console.log('Wake lock released');
-                        wakeLock = null;
-                    });
-                }
+                stopAllTimers();
             } else {
-                intervalId = setInterval(rollDice, delay);  // Roll every specified number of seconds
-                button.textContent = "Stop Rolling";
-                rollDice();  // Roll immediately on start
+                isRolling = true;
+                // Save settings to localStorage on start
+                localStorage.setItem('interval', intervalInput.value);
+                localStorage.setItem('phrases', phrasesTextarea.value);
+                localStorage.setItem('timer', timerInput.value);
 
-                if (timer > 0) {
-                    const endTime = Date.now() + timer;
+                const delay = Math.max(1, parseInt(intervalInput.value, 10)) * 1000;
+                const timerDuration = Math.max(0, parseInt(timerInput.value, 10)) * 60000;
+                
+                rollDice(); // Roll immediately on start
+                intervalId = setInterval(rollDice, delay);
+                toggleButton.textContent = "Stop Rolling";
+
+                if (timerDuration > 0) {
+                    const endTime = Date.now() + timerDuration;
                     countdownId = setInterval(() => {
                         const remainingTime = endTime - Date.now();
                         if (remainingTime <= 0) {
-                            clearInterval(intervalId);
-                            clearInterval(countdownId);
-                            button.textContent = "Start Rolling";
-                            document.getElementById('result').textContent = "Stopped";
-                            document.getElementById('countdown').textContent = "";
-                            isRolling = false;
-                            
-                            if (wakeLock) {
-                                wakeLock.release().then(() => {
-                                    console.log('Wake lock released');
-                                    wakeLock = null;
-                                });
-                            }
+                            stopAllTimers();
                         } else {
-                            const hours = Math.floor(remainingTime / 3600000);
                             const minutes = Math.floor((remainingTime % 3600000) / 60000);
                             const seconds = Math.floor((remainingTime % 60000) / 1000);
-                            document.getElementById('countdown').textContent = 
-                                hours > 0 ? `${hours}:${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}` :
-                                `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                            countdownDiv.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
                         }
                     }, 1000);
                 }
 
+                // Request a screen wake lock
                 if ('wakeLock' in navigator) {
-                    navigator.wakeLock.request('screen').then((sentinel) => {
+                    navigator.wakeLock.request('screen').then(sentinel => {
                         wakeLock = sentinel;
                         console.log('Wake lock acquired');
-                    }).catch((err) => {
+                    }).catch(err => {
                         console.error('Failed to acquire wake lock:', err);
                     });
                 }
             }
-            isRolling = !isRolling;
-
-            // Save interval, phrases, and timer to localStorage
-            localStorage.setItem('interval', delayInput.value);
-            localStorage.setItem('phrases', document.getElementById('phrases').value);
-            localStorage.setItem('timer', timerInput.value);
         }
     </script>
 </body>
