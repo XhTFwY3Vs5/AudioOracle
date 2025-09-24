@@ -10,6 +10,7 @@ The Audio Oracle is a simple, web-based tool designed to assist solo role-playin
 *   **Speech Synthesis:** The selected phrase is spoken aloud using your browser's built-in text-to-speech capabilities.
 *   **Persistence:** Your custom phrases, interval, and timer settings are saved in your browser's local storage, so they'll be there the next time you visit.
 *   **Screen Wake Lock:** The tool attempts to keep your screen awake while it's running, preventing your device from sleeping during a session.
+*   **Advanced AI generated graphic:** Just kidding.  In the early days of AI, I had it generate a "Happy d20" and the image at the top is what it came up with.  I thought it was kind of funny and stupid, so I kept it.  :)
 
 ## How to Use
 
