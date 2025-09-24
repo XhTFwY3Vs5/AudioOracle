@@ -4,7 +4,7 @@ The Audio Oracle is a simple, web-based tool designed to assist solo role-playin
 
 ## Features
 
-*   **Customizable Phrases:** Input your own list of phrases, one per line, to tailor the oracle to your specific game or needs. The default list provides a classic "yes/no" style oracle.
+*   **Customizable Phrases:** Input your own list of phrases, one per line, to tailor the oracle to your specific game or needs. The default list provides a classic "yes/no" style oracle.  Add more "yes" or "no" values to increase the odds.
 *   **Adjustable Delay:** Set the time interval (in seconds) between each "roll" of the oracle.
 *   **Optional Timer:** Configure a timer (in minutes) to automatically stop the oracle after a set duration.
 *   **Speech Synthesis:** The selected phrase is spoken aloud using your browser's built-in text-to-speech capabilities.
