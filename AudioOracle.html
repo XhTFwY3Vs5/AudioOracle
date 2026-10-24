@@ -15,6 +15,7 @@
             --color-muted: #888;
             --color-bg: #f4f4f9;
             --color-border: #ccc;
+            --color-danger: #c0392b;
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -40,6 +41,38 @@
         }
 
         .logo { width: 120px; height: 120px; }
+
+        /* Scene panel */
+        #scene-panel {
+            width: 100%;
+            background: #fff;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-medium);
+            display: none;
+            position: relative;
+        }
+        #scene-panel.visible { display: block; }
+        #scene-text {
+            font-size: 1.05em;
+            line-height: 1.5;
+            color: #333;
+            white-space: pre-wrap;
+            margin: 0;
+        }
+        #scene-clear {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: var(--color-muted);
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+        #scene-clear:hover { color: var(--color-danger); }
 
         #result {
             font-size: 2em;
@@ -119,6 +152,7 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 0.95em;
         }
+        textarea#scene-seeds { min-height: 60px; font-family: inherit; font-size: 0.95em; }
 
         input[type="range"] { padding: 0; }
 
@@ -135,23 +169,23 @@
             min-height: 1.2em;
         }
 
-        details.syntax-help {
+        details.syntax-help, details.scene-help {
             font-size: 0.9em;
             color: #555;
         }
-        details.syntax-help summary {
+        details.syntax-help summary, details.scene-help summary {
             cursor: pointer;
             color: var(--color-primary);
             user-select: none;
         }
-        details.syntax-help code {
+        details.syntax-help code, details.scene-help code {
             background: #eee;
             padding: 1px 4px;
             border-radius: 3px;
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
             font-size: 0.9em;
         }
-        details.syntax-help ul { margin: 6px 0 0 0; padding-left: 20px; }
+        details.syntax-help ul, details.scene-help ul { margin: 6px 0 0 0; padding-left: 20px; }
 
         .hidden { display: none !important; }
 
@@ -167,6 +201,10 @@
             transition: background-color 0.2s ease;
         }
         button:hover { background-color: var(--color-primary-hover); }
+        button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
         button.secondary {
             background: transparent;
             color: var(--color-primary);
@@ -176,6 +214,11 @@
             font-weight: normal;
         }
         button.secondary:hover { background: rgba(0, 123, 255, 0.08); }
+        button.scene-btn {
+            background-color: #28a745;
+        }
+        button.scene-btn:hover { background-color: #218838; }
+        button.scene-btn:disabled { background-color: #aaa; }
 
         #countdown {
             font-size: 1.5em;
@@ -245,7 +288,7 @@
             font-size: 0.95em;
         }
 
-        details.first-run-help {
+        details.first-run-help, details.scene-generator {
             width: 100%;
             font-size: 0.9em;
             background: rgba(0, 123, 255, 0.04);
@@ -253,14 +296,33 @@
             border-radius: var(--border-radius);
             padding: 8px 12px;
         }
-        details.first-run-help summary {
+        details.scene-generator {
+            background: rgba(40, 167, 69, 0.04);
+            border-color: rgba(40, 167, 69, 0.2);
+        }
+        details.first-run-help summary, details.scene-generator summary {
             cursor: pointer;
             color: var(--color-primary);
             font-weight: 500;
             user-select: none;
         }
-        details.first-run-help ul { margin: 8px 0 0 0; padding-left: 20px; }
-        details.first-run-help li { margin-bottom: 4px; }
+        details.scene-generator summary { color: #218838; }
+        details.first-run-help ul, details.scene-generator ul { margin: 8px 0 0 0; padding-left: 20px; }
+        details.first-run-help li, details.scene-generator li { margin-bottom: 4px; }
+
+        #scene-status {
+            font-size: 0.85em;
+            min-height: 1.2em;
+            color: var(--color-muted);
+        }
+        #scene-status.error { color: var(--color-danger); }
+        #scene-status.success { color: #28a745; }
+
+        .scene-actions {
+            display: flex;
+            gap: var(--spacing-small);
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -268,6 +330,12 @@
     <main class="container">
 
         <img src="img/audioOracleLogo.webp" alt="Audio Oracle Logo" class="logo">
+
+        <!-- Scene panel (hidden until generated) -->
+        <div id="scene-panel">
+            <button id="scene-clear" title="Clear scene">×</button>
+            <p id="scene-text"></p>
+        </div>
 
         <div id="result">Press Start</div>
 
@@ -281,6 +349,37 @@
                 <li><strong>Keyboard:</strong> <kbd>Space</kbd> starts/stops. <kbd>R</kbd> rolls once. Click a history entry to re-hear it.</li>
                 <li>On phones, the voice list may take a moment to populate. Grant the page screen-wake permission for long sessions.</li>
             </ul>
+        </details>
+
+        <!-- Scene Generator -->
+        <details class="scene-generator">
+            <summary>Generate an initial scene (OpenRouter)</summary>
+            <div class="form-group" style="margin-top: 8px;">
+                <label for="scene-api-key">OpenRouter API key:</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input id="scene-api-key" type="password" placeholder="sk-or-v1-..." style="flex: 1;">
+                    <button type="button" class="secondary" id="scene-key-toggle" style="padding: 6px 10px; font-size: 0.8em;">Show</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="scene-model">Model:</label>
+                <select id="scene-model">
+                    <option value="openrouter/free">openrouter/free (auto-select free model)</option>
+                </select>
+                <input id="scene-model-manual" type="text" placeholder="Or type a model ID manually (e.g. meta-llama/llama-3.1-8b-instruct:free)" style="margin-top: 4px;">
+            </div>
+
+            <div class="form-group">
+                <label for="scene-seeds">Optional seeds (one per line, or free text):</label>
+                <textarea id="scene-seeds" rows="3" placeholder="e.g. dark forest, a stranger with a letter, cyberpunk alley..."></textarea>
+            </div>
+
+            <div class="scene-actions">
+                <button type="button" class="scene-btn" id="scene-generate-btn">Generate Scene</button>
+                <button type="button" class="secondary" id="scene-fetch-models-btn" title="Fetch free model list from OpenRouter">Fetch Models</button>
+            </div>
+            <div id="scene-status"></div>
         </details>
 
         <form class="oracle-form" onsubmit="return false;">
@@ -394,25 +493,20 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.2</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.3</div>
 
     </main>
 
     <script>
     "use strict";
 
-    /* ============================================================
-     * Constants
-     * ============================================================ */
-
-    const VERSION = '1.2';
+    const VERSION = '1.3';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
-
-    /* ============================================================
-     * Element cache
-     * ============================================================ */
+    const SCENE_COOLDOWN_MS = 10000;
+    const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
+    const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
     const $ = id => document.getElementById(id);
     const els = {
@@ -440,6 +534,18 @@ yes, and...</textarea>
         toggleBtn:   $('toggleBtn'),
         historyList: $('historyList'),
         historyEmpty:$('historyEmpty'),
+        // Scene generator
+        scenePanel:     $('scene-panel'),
+        sceneText:      $('scene-text'),
+        sceneClear:     $('scene-clear'),
+        sceneApiKey:    $('scene-api-key'),
+        sceneKeyToggle: $('scene-key-toggle'),
+        sceneModel:     $('scene-model'),
+        sceneModelManual: $('scene-model-manual'),
+        sceneSeeds:     $('scene-seeds'),
+        sceneGenerateBtn: $('scene-generate-btn'),
+        sceneFetchModelsBtn: $('scene-fetch-models-btn'),
+        sceneStatus:    $('scene-status'),
     };
 
     /* ============================================================
@@ -536,7 +642,6 @@ yes, and...</textarea>
         timerId:    null,
         countdownId:null,
         wakeLock:   null,
-        // settings
         mode:       'standard',
         interval:   20,
         timer:      0,
@@ -550,6 +655,13 @@ yes, and...</textarea>
         pitch:      1,
         mute:       false,
         history:    [],
+        // Scene generator
+        sceneApiKey: '',
+        sceneModel: 'openrouter/free',
+        sceneModelManual: '',
+        sceneSeeds: '',
+        sceneCooldownUntil: 0,
+        sceneCooldownId: null,
     };
 
     /* ============================================================
@@ -588,6 +700,10 @@ yes, and...</textarea>
         state.pitch      = clamp(numOr(raw.pitch, 1), 0.8, 1.2);
         state.mute       = !!raw.mute;
         state.history    = Array.isArray(raw.history) ? raw.history.slice(0, HISTORY_LIMIT) : [];
+        state.sceneApiKey = typeof raw.sceneApiKey === 'string' ? raw.sceneApiKey : '';
+        state.sceneModel  = typeof raw.sceneModel === 'string' ? raw.sceneModel : 'openrouter/free';
+        state.sceneModelManual = typeof raw.sceneModelManual === 'string' ? raw.sceneModelManual : '';
+        state.sceneSeeds  = typeof raw.sceneSeeds === 'string' ? raw.sceneSeeds : '';
     }
 
     function saveSettings() {
@@ -606,6 +722,10 @@ yes, and...</textarea>
             pitch:    state.pitch,
             mute:     state.mute,
             history:  state.history,
+            sceneApiKey: state.sceneApiKey,
+            sceneModel:  state.sceneModel,
+            sceneModelManual: state.sceneModelManual,
+            sceneSeeds:  state.sceneSeeds,
         };
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(blob)); }
         catch (_) { /* storage disabled — non-fatal */ }
@@ -633,7 +753,7 @@ yes, and...</textarea>
     }
 
     /* ============================================================
-     * Phrase parsing & weighted pick
+     * Phrase parsing
      * ============================================================ */
 
     function parsePhrases(raw) {
@@ -724,7 +844,6 @@ yes, and...</textarea>
             const pick = weightedPick(phrases);
             if (!pick) return null;
             primary = pick.text;
-
         } else if (mode === 'fate') {
             const oddsMod  = ODDS_MODIFIERS[state.odds] ?? 0;
             const chaosMod = CHAOS_MODIFIERS[state.chaos] ?? 0;
@@ -732,7 +851,6 @@ yes, and...</textarea>
             const total = raw + oddsMod + chaosMod;
             primary = fateAnswer(total);
             details = `rolled ${raw} ${fmtSigned(oddsMod)} odds ${fmtSigned(chaosMod)} chaos = ${total}`;
-
         } else if (mode === 'meaning') {
             const pair = rollMeaningPair('action');
             primary = `${pair.a}. ${pair.b}`;
@@ -759,12 +877,8 @@ yes, and...</textarea>
 
     function formatForSpeech(roll) {
         const parts = [roll.primary];
-        if (roll.meanings.action) {
-            parts.push(`${roll.meanings.action.a}. ${roll.meanings.action.b}`);
-        }
-        if (roll.meanings.descriptor) {
-            parts.push(`${roll.meanings.descriptor.a}. ${roll.meanings.descriptor.b}`);
-        }
+        if (roll.meanings.action) parts.push(`${roll.meanings.action.a}. ${roll.meanings.action.b}`);
+        if (roll.meanings.descriptor) parts.push(`${roll.meanings.descriptor.a}. ${roll.meanings.descriptor.b}`);
         return parts.join('. ') + '.';
     }
 
@@ -775,28 +889,17 @@ yes, and...</textarea>
         }
         const muteTag = state.mute ? ' <span class="mute-indicator">🔇</span>' : '';
         let html = `<span class="primary">${escapeHtml(roll.primary)}</span>`;
-
         const lines = [];
-        if (roll.meanings.action) {
-            lines.push(`${escapeHtml(roll.meanings.action.a)} · ${escapeHtml(roll.meanings.action.b)}`);
-        }
-        if (roll.meanings.descriptor) {
-            lines.push(`${escapeHtml(roll.meanings.descriptor.a)} · ${escapeHtml(roll.meanings.descriptor.b)}`);
-        }
-        if (lines.length) {
-            html += `<span class="meanings">${lines.join('<br>')}</span>`;
-        }
-        if (roll.details) {
-            html += `<span class="roll-details">${escapeHtml(roll.details)}</span>`;
-        }
+        if (roll.meanings.action) lines.push(`${escapeHtml(roll.meanings.action.a)} · ${escapeHtml(roll.meanings.action.b)}`);
+        if (roll.meanings.descriptor) lines.push(`${escapeHtml(roll.meanings.descriptor.a)} · ${escapeHtml(roll.meanings.descriptor.b)}`);
+        if (lines.length) html += `<span class="meanings">${lines.join('<br>')}</span>`;
+        if (roll.details) html += `<span class="roll-details">${escapeHtml(roll.details)}</span>`;
         html += muteTag;
         els.result.innerHTML = html;
     }
 
     function escapeHtml(s) {
-        return String(s).replace(/[&<>"']/g, c => ({
-            '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-        }[c]));
+        return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
     }
 
     /* ============================================================
@@ -833,21 +936,16 @@ yes, and...</textarea>
         state.history.forEach((h) => {
             const li = document.createElement('li');
             li.title = 'Click to speak again';
-
             const replayParts = [h.primary];
             if (h.meanings.action) replayParts.push(`${h.meanings.action.a}. ${h.meanings.action.b}`);
             if (h.meanings.descriptor) replayParts.push(`${h.meanings.descriptor.a}. ${h.meanings.descriptor.b}`);
             const replayText = replayParts.join('. ') + '.';
-
             let val = escapeHtml(h.primary);
             const m = [];
             if (h.meanings.action) m.push(`${escapeHtml(h.meanings.action.a)}·${escapeHtml(h.meanings.action.b)}`);
             if (h.meanings.descriptor) m.push(`${escapeHtml(h.meanings.descriptor.a)}·${escapeHtml(h.meanings.descriptor.b)}`);
             if (m.length) val += ` <span style="color:#999">— ${m.join(' / ')}</span>`;
-
-            li.innerHTML =
-                `<span class="ts">${escapeHtml(h.time)}</span>` +
-                `<span class="val">${val}</span>`;
+            li.innerHTML = `<span class="ts">${escapeHtml(h.time)}</span><span class="val">${val}</span>`;
             li.addEventListener('click', () => speak(replayText));
             els.historyList.appendChild(li);
         });
@@ -883,19 +981,17 @@ yes, and...</textarea>
             els.hint.textContent = msg;
         }, 150);
     }
-
     function round(n) { return Math.round(n * 100) / 100; }
     function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
     /* ============================================================
-     * Mode-dependent visibility
+     * Mode visibility
      * ============================================================ */
 
     function syncModeVisibility() {
         const mode = state.mode;
         els.phrasesGroup.classList.toggle('hidden', mode !== 'standard');
         els.fateGroup.classList.toggle('hidden', mode !== 'fate');
-
         const appendLabelVisible = (mode !== 'meaning');
         els.appendMeaningLabel.classList.toggle('hidden', !appendLabelVisible);
         if (mode === 'meaning') {
@@ -905,77 +1001,56 @@ yes, and...</textarea>
             els.appendMeaning.checked = state.appendMeaning;
             els.appendMeaning.disabled = false;
         }
-
-        const descLabelVisible =
-            (mode === 'meaning') || (mode !== 'meaning' && state.appendMeaning);
+        const descLabelVisible = (mode === 'meaning') || (mode !== 'meaning' && state.appendMeaning);
         els.rollDescriptorsLabel.classList.toggle('hidden', !descLabelVisible);
-        if (!descLabelVisible) {
-            els.rollDescriptors.checked = false;
-        } else {
-            els.rollDescriptors.checked = state.rollDescriptors;
-        }
+        if (!descLabelVisible) els.rollDescriptors.checked = false;
+        else els.rollDescriptors.checked = state.rollDescriptors;
     }
 
     /* ============================================================
-     * Rolling loop — self-correcting setTimeout chain
+     * Rolling loop
      * ============================================================ */
 
     function oneTick() {
         const roll = doRoll();
         renderRoll(roll);
-        if (roll) {
-            speak(formatForSpeech(roll));
-            pushHistory(roll);
-        }
+        if (roll) { speak(formatForSpeech(roll)); pushHistory(roll); }
     }
 
-    function toggleRolling() {
-        if (state.isRolling) stopRolling();
-        else startRolling();
-    }
+    function toggleRolling() { if (state.isRolling) stopRolling(); else startRolling(); }
 
     function startRolling() {
         syncFormToState();
         saveSettings();
-
         const delayMs = Math.max(1, parseInt(els.interval.value, 10) || 20) * 1000;
         const timerMs = Math.max(0, parseInt(els.timer.value, 10) || 0) * 60000;
-
         state.isRolling = true;
         els.toggleBtn.textContent = 'Stop Rolling';
-
         oneTick();
-
         const startTime = Date.now();
         let nextIndex = 1;
-
         const scheduleNext = () => {
             if (!state.isRolling) return;
             const target = startTime + nextIndex * delayMs;
             const wait = Math.max(0, target - Date.now());
             state.intervalId = setTimeout(() => {
                 if (!state.isRolling) return;
-                oneTick();
-                nextIndex++;
-                scheduleNext();
+                oneTick(); nextIndex++; scheduleNext();
             }, wait);
         };
         scheduleNext();
-
         if (timerMs > 0) {
             const endTime = Date.now() + timerMs;
             state.countdownId = setInterval(() => {
                 const remaining = endTime - Date.now();
-                if (remaining <= 0) {
-                    stopRolling();
-                } else {
+                if (remaining <= 0) stopRolling();
+                else {
                     const m = Math.floor((remaining % 3600000) / 60000);
                     const s = Math.floor((remaining % 60000) / 1000);
                     els.countdown.textContent = `${m}:${String(s).padStart(2, '0')}`;
                 }
             }, 1000);
         }
-
         requestWakeLock();
     }
 
@@ -1001,12 +1076,8 @@ yes, and...</textarea>
         try {
             const sentinel = await navigator.wakeLock.request('screen');
             state.wakeLock = sentinel;
-            sentinel.addEventListener('release', () => {
-                if (state.wakeLock === sentinel) state.wakeLock = null;
-            });
-        } catch (err) {
-            console.warn('Wake lock request failed:', err);
-        }
+            sentinel.addEventListener('release', () => { if (state.wakeLock === sentinel) state.wakeLock = null; });
+        } catch (err) { console.warn('Wake lock request failed:', err); }
     }
 
     async function releaseWakeLock() {
@@ -1017,9 +1088,7 @@ yes, and...</textarea>
     }
 
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && state.isRolling) {
-            requestWakeLock();
-        }
+        if (document.visibilityState === 'visible' && state.isRolling) requestWakeLock();
     });
 
     /* ============================================================
@@ -1039,6 +1108,11 @@ yes, and...</textarea>
         state.rate       = clamp(parseFloat(els.rate.value) || 1, 0.7, 1.3);
         state.pitch      = clamp(parseFloat(els.pitch.value) || 1, 0.8, 1.2);
         state.mute       = els.mute.checked;
+        // Scene generator fields
+        state.sceneApiKey = els.sceneApiKey.value;
+        state.sceneModel  = els.sceneModel.value;
+        state.sceneModelManual = els.sceneModelManual.value;
+        state.sceneSeeds  = els.sceneSeeds.value;
     }
 
     function stateToForm() {
@@ -1055,7 +1129,129 @@ yes, and...</textarea>
         els.mute.checked  = state.mute;
         els.rateVal.textContent  = Number(state.rate).toFixed(2);
         els.pitchVal.textContent = Number(state.pitch).toFixed(2);
+        els.sceneApiKey.value = state.sceneApiKey;
+        els.sceneModel.value  = state.sceneModel;
+        els.sceneModelManual.value = state.sceneModelManual;
+        els.sceneSeeds.value  = state.sceneSeeds;
         syncModeVisibility();
+    }
+
+    /* ============================================================
+     * Scene Generator
+     * ============================================================ */
+
+    function setSceneStatus(msg, type) {
+        els.sceneStatus.textContent = msg;
+        els.sceneStatus.className = type || '';
+    }
+
+    function showScene(text) {
+        els.sceneText.textContent = text;
+        els.scenePanel.classList.add('visible');
+    }
+
+    function hideScene() {
+        els.scenePanel.classList.remove('visible');
+        els.sceneText.textContent = '';
+    }
+
+    async function fetchFreeModels() {
+        const key = els.sceneApiKey.value.trim();
+        if (!key) { setSceneStatus('Enter an API key first.', 'error'); return; }
+        setSceneStatus('Fetching models…');
+        try {
+            const res = await fetch(OPENROUTER_MODELS_URL, {
+                headers: { 'Authorization': `Bearer ${key}` },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const free = (data.data || []).filter(m => {
+                const p = m.pricing || {};
+                const prompt = parseFloat(p.prompt || '0');
+                const completion = parseFloat(p.completion || '0');
+                return prompt === 0 && completion === 0;
+            });
+            if (!free.length) { setSceneStatus('No free models found. Using default.', 'error'); return; }
+            const current = els.sceneModel.value;
+            els.sceneModel.innerHTML = '<option value="openrouter/free">openrouter/free (auto-select free model)</option>';
+            free.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            free.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = `${m.name || m.id} (${m.id})`;
+                els.sceneModel.appendChild(opt);
+            });
+            if ([...els.sceneModel.options].some(o => o.value === current)) els.sceneModel.value = current;
+            setSceneStatus(`${free.length} free model${free.length === 1 ? '' : 's'} loaded.`, 'success');
+        } catch (e) {
+            setSceneStatus(`Failed to fetch models: ${e.message}. You can type a model ID manually.`, 'error');
+        }
+    }
+
+    function startCooldown() {
+        clearInterval(state.sceneCooldownId);
+        state.sceneCooldownUntil = Date.now() + SCENE_COOLDOWN_MS;
+        els.sceneGenerateBtn.disabled = true;
+        const tick = () => {
+            const remain = state.sceneCooldownUntil - Date.now();
+            if (remain <= 0) {
+                clearInterval(state.sceneCooldownId);
+                state.sceneCooldownId = null;
+                els.sceneGenerateBtn.disabled = false;
+                els.sceneGenerateBtn.textContent = 'Generate Scene';
+            } else {
+                els.sceneGenerateBtn.textContent = `Wait ${Math.ceil(remain / 1000)}s…`;
+            }
+        };
+        tick();
+        state.sceneCooldownId = setInterval(tick, 500);
+    }
+
+    async function generateScene() {
+        const key = els.sceneApiKey.value.trim();
+        if (!key) { setSceneStatus('Enter an API key first.', 'error'); return; }
+        const manual = els.sceneModelManual.value.trim();
+        const model = manual || els.sceneModel.value;
+        const seeds = els.sceneSeeds.value.trim();
+
+        const systemPrompt = 'You are a TTRPG scene generator for a solo player lying in bed. Generate a concise opening scene (2-4 sentences) that inspires a roleplay session. Include a hook or immediate situation. Do not ask questions. Do not use markdown. Write in second person ("You see...").';
+        const userPrompt = seeds
+            ? `Seeds/ideas to incorporate: ${seeds}\n\nGenerate the opening scene.`
+            : 'Generate an opening scene.';
+
+        setSceneStatus('Generating…');
+        els.sceneGenerateBtn.disabled = true;
+        try {
+            const res = await fetch(OPENROUTER_CHAT_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${key}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt },
+                    ],
+                    max_tokens: 300,
+                }),
+            });
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error(`HTTP ${res.status}: ${err.slice(0, 200)}`);
+            }
+            const data = await res.json();
+            const content = data.choices?.[0]?.message?.content;
+            if (!content) throw new Error('Empty response from model.');
+            showScene(content);
+            setSceneStatus(`Generated with ${data.model || model}.`, 'success');
+            state.sceneCooldownUntil = 0;
+            startCooldown();
+        } catch (e) {
+            setSceneStatus(`Error: ${e.message}`, 'error');
+            els.sceneGenerateBtn.disabled = false;
+        }
     }
 
     /* ============================================================
@@ -1094,10 +1290,7 @@ yes, and...</textarea>
             els.pitchVal.textContent = Number(els.pitch.value).toFixed(2);
             scheduleSave();
         });
-        els.phrases.addEventListener('input', () => {
-            updateHint();
-            scheduleSave();
-        });
+        els.phrases.addEventListener('input', () => { updateHint(); scheduleSave(); });
 
         els.voice.addEventListener('change', () => {
             state.voice = els.voice.value;
@@ -1127,15 +1320,25 @@ yes, and...</textarea>
             const tag = (e.target && e.target.tagName) || '';
             const isTyping = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || e.target?.isContentEditable;
             if (isTyping) return;
-
-            if (e.code === 'Space') {
-                e.preventDefault();
-                toggleRolling();
-            } else if (e.key === 'r' || e.key === 'R') {
-                e.preventDefault();
-                oneTick();
-            }
+            if (e.code === 'Space') { e.preventDefault(); toggleRolling(); }
+            else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); oneTick(); }
         });
+
+        // Scene generator events
+        els.sceneKeyToggle.addEventListener('click', () => {
+            const isPassword = els.sceneApiKey.type === 'password';
+            els.sceneApiKey.type = isPassword ? 'text' : 'password';
+            els.sceneKeyToggle.textContent = isPassword ? 'Hide' : 'Show';
+        });
+
+        els.sceneGenerateBtn.addEventListener('click', generateScene);
+        els.sceneFetchModelsBtn.addEventListener('click', fetchFreeModels);
+        els.sceneClear.addEventListener('click', hideScene);
+
+        els.sceneApiKey.addEventListener('change', scheduleSave);
+        els.sceneModel.addEventListener('change', scheduleSave);
+        els.sceneModelManual.addEventListener('change', scheduleSave);
+        els.sceneSeeds.addEventListener('change', scheduleSave);
     }
 
     /* ============================================================
