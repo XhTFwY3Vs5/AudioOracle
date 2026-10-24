@@ -353,7 +353,7 @@
 
         <!-- Scene Generator -->
         <details class="scene-generator">
-            <summary>Generate an initial scene (OpenRouter)</summary>
+            <summary>Generate a scenario (OpenRouter)</summary>
             <div class="form-group" style="margin-top: 8px;">
                 <label for="scene-api-key">OpenRouter API key:</label>
                 <div style="display: flex; gap: 8px; align-items: center;">
@@ -376,7 +376,7 @@
             </div>
 
             <div class="scene-actions">
-                <button type="button" class="scene-btn" id="scene-generate-btn">Generate Scene</button>
+                <button type="button" class="scene-btn" id="scene-generate-btn">Generate Scenario</button>
                 <button type="button" class="secondary" id="scene-fetch-models-btn" title="Fetch free model list from OpenRouter">Fetch Models</button>
             </div>
             <div id="scene-status"></div>
@@ -1198,7 +1198,7 @@ yes, and...</textarea>
                 clearInterval(state.sceneCooldownId);
                 state.sceneCooldownId = null;
                 els.sceneGenerateBtn.disabled = false;
-                els.sceneGenerateBtn.textContent = 'Generate Scene';
+                els.sceneGenerateBtn.textContent = 'Generate Scenario';
             } else {
                 els.sceneGenerateBtn.textContent = `Wait ${Math.ceil(remain / 1000)}s…`;
             }
@@ -1214,7 +1214,7 @@ yes, and...</textarea>
         const model = manual || els.sceneModel.value;
         const seeds = els.sceneSeeds.value.trim();
 
-        const systemPrompt = 'You are a TTRPG scene generator for a solo player lying in bed. Generate a concise opening scene (2-4 sentences) that inspires a roleplay session. Include a hook or immediate situation. Do not ask questions. Do not use markdown. Write in second person ("You see...").';
+        const systemPrompt = 'You are a TTRPG scene generator for a solo player lying in bed. Generate a concise opening scenario using bullet points that inspires a roleplay session. Include a hook or immediate situation. Use bullet points (starting with "- " or "• ") to create a scenario-based outline. Do not ask questions. Do not use markdown. Write in second person ("You...").';
         const userPrompt = seeds
             ? `Seeds/ideas to incorporate: ${seeds}\n\nGenerate the opening scene.`
             : 'Generate an opening scene.';
@@ -1245,7 +1245,7 @@ yes, and...</textarea>
             const content = data.choices?.[0]?.message?.content;
             if (!content) throw new Error('Empty response from model.');
             showScene(content);
-            setSceneStatus(`Generated with ${data.model || model}.`, 'success');
+            setSceneStatus(`Scenario generated with ${data.model || model}.`, 'success');
             state.sceneCooldownUntil = 0;
             startCooldown();
         } catch (e) {
