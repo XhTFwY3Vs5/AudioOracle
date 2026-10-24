@@ -1,45 +1,33 @@
 # Audio Oracle
 
-The Audio Oracle is a simple, web-based tool designed to assist solo role-playing game (RPG) players by providing randomized prompts and answers through spoken word. It's perfect for generating answers, quick decisions, plot hooks, or character reactions when you don't have a GM or dice handy.  Put it on a loop with a customizable delay and you can play fully in your mind while walking, waiting in line, or lying in bed!
+**Version: 1.1**
+
+A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
 ## Features
 
-*   **Customizable Phrases:** Input your own list of phrases, one per line, to tailor the oracle to your specific game or needs. The default list provides a classic "yes/no" style oracle.  Add more "yes" or "no" values to increase the odds.
-*   **Adjustable Delay:** Set the time interval (in seconds) between each "roll" of the oracle.
-*   **Optional Timer:** Configure a timer (in minutes) to automatically stop the oracle after a set duration.
-*   **Speech Synthesis:** The selected phrase is spoken aloud using your browser's built-in text-to-speech capabilities.
-*   **Persistence:** Your custom phrases, interval, and timer settings are saved in your browser's local storage, so they'll be there the next time you visit.
-*   **Screen Wake Lock:** The tool attempts to keep your screen awake while it's running, preventing your device from sleeping during a session.
-*   **Advanced AI Generated Graphic:** Just kidding.  In the early days of AI, I had it generate a "Happy d20" and the image at the top is what it came up with.  I thought it was kind of funny and stupid, so I kept it.  :)
+- **Three modes**
+  - **Standard** — draws a phrase from your list.
+  - **Mythic Fate** — rolls the Mythic Game Master Emulator 2e Fate Check (2d10 + odds modifier + chaos modifier).
+  - **Mythic Meaning** — rolls Action word pairs (and optionally Descriptor pairs) for inspiration.
+- **Weighted phrases** — `[3] yes` makes "yes" three times as likely. Fractions and `[0]` (disabled) supported. Fully backward compatible with unweighted lists.
+- **Append meaning words** — in Standard or Fate mode, add a Mythic Action pair to every roll.
+- **Roll history** — last 10 results, timestamped. Click to re-speak.
+- **Voice controls** — pick a voice, adjust rate and pitch. Mute while keeping the display live.
+- **Keyboard shortcuts** — `Space` start/stop, `R` roll once.
+- **Customizable interval and optional timer.**
+- **Screen wake lock** — keeps the screen on during sessions, and re-acquires after tab switches.
+- **Settings persistence** — phrases, mode, odds, chaos, voice, rate, pitch, mute, history, and more are saved locally.
 
 ## How to Use
 
-1.  **Open the Page:** Save the provided HTML code as an `.html` file (e.g., `audio_oracle.html`) and open it in your web browser.
-2.  **Customize Phrases:** In the "Enter phrases (one per line):" text area, replace the default phrases with your own. For example, you could enter:
-    *   A helpful NPC
-    *   A dangerous trap
-    *   A new clue
-    *   An unexpected delay
-    *   A surprising ally
-3.  **Set Delay:** Adjust the "Delay between rolls (seconds):" input to your desired interval. A shorter delay provides quicker responses, while a longer one allows for more contemplation.
-4.  **Set Timer (Optional):** If you want the oracle to stop automatically, enter the desired duration in "Stop after (minutes, 0 for unlimited):".
-5.  **Start Rolling:** Click the "Start Rolling" button. The oracle will immediately select and speak a phrase, and then continue to do so at your set interval.
-6.  **Stop Rolling:** Click the "Stop Rolling" button to halt the oracle.
+1. Save the provided HTML as `AudioOracle.html` and open it in a modern browser.
+2. Pick a mode.
+   - **Standard**: edit the phrase list. Optional weighted syntax `[3] yes`.
+   - **Mythic Fate**: set Odds (Certain … Impossible) and Chaos Factor (1–9). Optional "Speak roll math" reads the arithmetic aloud.
+   - **Mythic Meaning**: rolls an Action pair. Enable "Include descriptors" for two more words.
+3. Set Delay (seconds) and optional Stop timer (minutes).
+4. Press **Start Rolling**, or hit `Space`.
+5. Press **Stop Rolling** or `Space` again to stop.
 
-## Technical Details
-
-This tool is a single HTML file that uses JavaScript for its functionality. It leverages:
-
-*   **`Math.random()`:** For generating random numbers to select phrases.
-*   **`setInterval()` and `clearInterval()`:** For managing the rolling delay and the optional timer.
-*   **`SpeechSynthesisUtterance` and `speechSynthesis.speak()`:** For text-to-speech output.
-*   **`localStorage`:** For persisting user settings.
-*   **`navigator.wakeLock.request('screen')`:** For attempting to keep the screen awake.
-
-## Contributing
-
-This is a simple, self-contained tool. Contributions are welcome in the form of:
-
-*   **Bug reports:** If you find any issues.
-*   **Feature requests:** If you have ideas for improvements.
-*   **Pull requests:** For code enhancements or bug fixes.
+### Weighted phrase syntax

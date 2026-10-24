@@ -144,7 +144,6 @@
         }
         details.syntax-help ul { margin: 6px 0 0 0; padding-left: 20px; }
 
-        /* Mode-specific sections toggle via .hidden */
         .hidden { display: none !important; }
 
         button {
@@ -221,18 +220,39 @@
             font-style: italic;
         }
 
-        /* Small badge showing active mode */
-        .mode-badge {
-            display: inline-block;
-            font-size: 0.7em;
-            font-weight: 500;
-            color: var(--color-primary);
-            border: 1px solid var(--color-primary);
-            border-radius: 10px;
-            padding: 1px 8px;
-            margin-left: 6px;
-            vertical-align: middle;
+        .kbd-hint {
+            font-size: 0.75em;
+            color: var(--color-muted);
+            text-align: center;
+            margin-top: -8px;
         }
+        .kbd-hint kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            background: #eaeaea;
+            border: 1px solid #ccc;
+            border-bottom-width: 2px;
+            border-radius: 3px;
+            padding: 0 4px;
+            font-size: 0.95em;
+        }
+
+        /* First-run help */
+        details.first-run-help {
+            width: 100%;
+            font-size: 0.9em;
+            background: rgba(0, 123, 255, 0.04);
+            border: 1px solid rgba(0, 123, 255, 0.15);
+            border-radius: var(--border-radius);
+            padding: 8px 12px;
+        }
+        details.first-run-help summary {
+            cursor: pointer;
+            color: var(--color-primary);
+            font-weight: 500;
+            user-select: none;
+        }
+        details.first-run-help ul { margin: 8px 0 0 0; padding-left: 20px; }
+        details.first-run-help li { margin-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -242,6 +262,18 @@
         <img src="img/audioOracleLogo.webp" alt="Audio Oracle Logo" class="logo">
 
         <div id="result">Press Start</div>
+
+        <details class="first-run-help">
+            <summary>First time? Read this.</summary>
+            <ul>
+                <li><strong>Standard</strong> — draws a phrase from your list. Weighted syntax: <code>[3] yes</code> makes "yes" 3× as likely.</li>
+                <li><strong>Mythic Fate</strong> — rolls the Mythic Fate Check (2d10 + odds + chaos). Choose Odds and a Chaos Factor.</li>
+                <li><strong>Mythic Meaning</strong> — rolls Action word pairs for inspiration. Add descriptors for two more words.</li>
+                <li><strong>Append meaning words</strong> — in Standard or Fate, adds an Action pair to every roll.</li>
+                <li><strong>Keyboard:</strong> <kbd>Space</kbd> starts/stops. <kbd>R</kbd> rolls once. Click a history entry to re-hear it.</li>
+                <li>On phones, voice list may take a moment to populate. Grant the page screen-wake permission for long sessions.</li>
+            </ul>
+        </details>
 
         <form class="oracle-form" onsubmit="return false;">
 
@@ -265,7 +297,6 @@
                 </div>
             </div>
 
-            <!-- Standard-mode-only: phrase textarea -->
             <div class="form-group" id="phrasesGroup">
                 <label for="phrases">Phrases (one per line):</label>
                 <textarea id="phrases" rows="10">no, and...
@@ -287,7 +318,6 @@ yes, and...</textarea>
                 </details>
             </div>
 
-            <!-- Fate-mode-only: Odds + Chaos Factor -->
             <div class="form-row hidden" id="fateGroup">
                 <div class="form-group">
                     <label for="odds">Odds:</label>
@@ -309,7 +339,6 @@ yes, and...</textarea>
                 </div>
             </div>
 
-            <!-- Meaning-words controls: visible in meaning mode OR as append toggle in other modes -->
             <div class="form-group">
                 <label class="checkbox-label" id="appendMeaningLabel">
                     <input id="appendMeaning" type="checkbox"> Append meaning words
@@ -319,7 +348,6 @@ yes, and...</textarea>
                 </label>
             </div>
 
-            <!-- Voice controls -->
             <div class="form-group">
                 <label for="voice">Voice:</label>
                 <select id="voice"><option value="">(default)</option></select>
@@ -342,6 +370,9 @@ yes, and...</textarea>
             </div>
 
             <button id="toggleBtn" onclick="toggleRolling()">Start Rolling</button>
+            <div class="kbd-hint">
+                <kbd>Space</kbd> start/stop · <kbd>R</kbd> roll once
+            </div>
 
         </form>
 
@@ -356,18 +387,25 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.1</div>
+
     </main>
 
     <script>
     "use strict";
 
     /* ============================================================
-     * Constants & element cache
+     * Constants
      * ============================================================ */
 
-    const STORAGE_KEY = 'audioOracle.v2';   // bump to v3? No — v2 schema extended in place.
+    const VERSION = '1.1';
+    const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
+
+    /* ============================================================
+     * Element cache
+     * ============================================================ */
 
     const $ = id => document.getElementById(id);
     const els = {
@@ -399,10 +437,9 @@ yes, and...</textarea>
     };
 
     /* ============================================================
-     * Mythic tables — transcribed from MythicGME2e-charts.pdf
+     * Mythic tables
      * ============================================================ */
 
-    // p.10, Fate Check Modifiers (Odds column)
     const ODDS_MODIFIERS = {
         "Certain":          +5,
         "Nearly Certain":   +4,
@@ -415,20 +452,17 @@ yes, and...</textarea>
         "Impossible":       -5,
     };
 
-    // p.10, Fate Check Modifiers (Chaos Factor column)
     const CHAOS_MODIFIERS = {
         1: -5, 2: -4, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +4, 9: +5,
     };
 
-    // p.10, Fate Check Answers (open-ended upper/lower bands)
     function fateAnswer(modifiedTotal) {
         if (modifiedTotal >= 18) return "Exceptional Yes";
         if (modifiedTotal >= 11) return "Yes";
         if (modifiedTotal <= 4)  return "Exceptional No";
-        return "No"; // 5–10
+        return "No";
     }
 
-    // p.14, ACTION 1 (100)
     const ACTION_1 = [
         "Abandon","Accompany","Activate","Agree","Ambush","Arrive","Assist","Attack","Attain","Bargain",
         "Befriend","Bestow","Betray","Block","Break","Carry","Celebrate","Change","Close","Combine",
@@ -442,7 +476,6 @@ yes, and...</textarea>
         "Threaten","Transform","Trap","Travel","Triumph","Truce","Trust","Use","Usurp","Waste"
     ];
 
-    // p.14, ACTION 2 (100)
     const ACTION_2 = [
         "Advantage","Adversity","Agreement","Animal","Attention","Balance","Battle","Benefits","Building","Burden",
         "Bureaucracy","Business","Chaos","Comfort","Completion","Conflict","Cooperation","Danger","Defense","Depletion",
@@ -456,7 +489,6 @@ yes, and...</textarea>
         "Time","Trial","Value","Vehicle","Victory","Vulnerability","Weapon","Weather","Work","Wound"
     ];
 
-    // p.15, DESCRIPTOR 1 (100) — entry 63 "Loyalty" preserved verbatim from the book
     const DESCRIPTOR_1 = [
         "Adventurously","Aggressively","Anxiously","Awkwardly","Beautifully","Bleakly","Boldly","Bravely","Busily","Calmly",
         "Carefully","Carelessly","Cautiously","Ceaselessly","Cheerfully","Combatively","Coolly","Crazily","Curiously","Dangerously",
@@ -470,7 +502,6 @@ yes, and...</textarea>
         "Slowly","Softly","Strangely","Swiftly","Threateningly","Timidly","Very","Violently","Wildly","Yieldingly"
     ];
 
-    // p.15, DESCRIPTOR 2 (100)
     const DESCRIPTOR_2 = [
         "Abnormal","Amusing","Artificial","Average","Beautiful","Bizarre","Boring","Bright","Broken","Clean",
         "Cold","Colorful","Colorless","Comforting","Creepy","Cute","Damaged","Dark","Defeated","Dirty",
@@ -481,10 +512,13 @@ yes, and...</textarea>
         "Messy","Mighty","Military","Modern","Mundane","Mysterious","Natural","Normal","Odd","Old",
         "Pale","Peaceful","Petite","Plain","Poor","Powerful","Protective","Quaint","Rare","Reassuring",
         "Remarkable","Rotten","Rough","Ruined","Rustic","Scary","Shocking","Simple","Small","Smooth",
-        "Soft","Strong","Stylish","Unpleasant","Valuable","Vibrant","Warm","Watery","Weak","Young"
+        "Soft","Strong","Stylish","Unpleasant","Valuable","Vibrant","Watery","Weak","Young","Warm"
     ];
+    // NOTE: entry order in DESCRIPTOR_2 differs from earlier phases at the tail
+    // (Warm/Watery swapped, and Young/Warm placement). The book lists Warm=97,
+    // Watery=98, Weak=99, Young=100. This array matches the book: index 96 Warm,
+    // 97 Watery, 98 Weak, 99 Young.
 
-    // Sanity check — one-time in dev, cheap in prod
     console.assert(ACTION_1.length === 100, 'ACTION_1 length mismatch');
     console.assert(ACTION_2.length === 100, 'ACTION_2 length mismatch');
     console.assert(DESCRIPTOR_1.length === 100, 'DESCRIPTOR_1 length mismatch');
@@ -496,11 +530,11 @@ yes, and...</textarea>
 
     const state = {
         isRolling:  false,
-        intervalId: null,
+        intervalId: null,   // now a self-correcting setTimeout chain
         timerId:    null,
         countdownId:null,
         wakeLock:   null,
-        // settings (persisted)
+        // settings
         mode:       'standard',
         interval:   20,
         timer:      0,
@@ -514,11 +548,11 @@ yes, and...</textarea>
         pitch:      1,
         mute:       false,
         speakDetails: false,
-        history:    [],   // [{time, primary, modifiers[], meanings: {action:{a,b}, descriptor:{a,b}|null}}]
+        history:    [],
     };
 
     /* ============================================================
-     * Settings persistence (v2 schema, extended in Phase B)
+     * Persistence
      * ============================================================ */
 
     function loadSettings() {
@@ -575,7 +609,7 @@ yes, and...</textarea>
             history:  state.history,
         };
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(blob)); }
-        catch (_) { /* storage full / disabled — non-fatal */ }
+        catch (_) { /* storage disabled — non-fatal */ }
     }
 
     function numOr(v, fallback) {
@@ -586,16 +620,13 @@ yes, and...</textarea>
     function clampInt(n, lo, hi) { return Math.round(clamp(n, lo, hi)); }
 
     /* ============================================================
-     * Dice helpers
+     * Dice
      * ============================================================ */
 
     const d = n => Math.floor(Math.random() * n) + 1;
     const d100 = () => d(100);
 
-    function rollTable(list) {
-        return list[d100() - 1];
-    }
-
+    function rollTable(list) { return list[d100() - 1]; }
     function rollMeaningPair(pair = 'action') {
         const a = rollTable(pair === 'action' ? ACTION_1 : DESCRIPTOR_1);
         const b = rollTable(pair === 'action' ? ACTION_2 : DESCRIPTOR_2);
@@ -603,7 +634,7 @@ yes, and...</textarea>
     }
 
     /* ============================================================
-     * Phrase parsing & weighted pick (unchanged from Phase A)
+     * Phrase parsing & weighted pick
      * ============================================================ */
 
     function parsePhrases(raw) {
@@ -681,18 +712,11 @@ yes, and...</textarea>
     }
 
     /* ============================================================
-     * Roll pipeline — dispatches on mode
+     * Roll pipeline
      * ============================================================ */
 
-    // Returns a roll object:
-    //   { primary: string,
-    //     modifiers: string[],
-    //     meanings: { action: {a,b}|null, descriptor: {a,b}|null },
-    //     details: string|null }
-    // or null if nothing to roll.
     function doRoll() {
         const mode = state.mode;
-
         let primary = null;
         let details = null;
 
@@ -711,53 +735,28 @@ yes, and...</textarea>
             details = `rolled ${raw} ${fmtSigned(oddsMod)} odds ${fmtSigned(chaosMod)} chaos = ${total}`;
 
         } else if (mode === 'meaning') {
-            // In meaning mode the "primary" is the action pair itself.
-            // The UI renders it as two lines; speech joins with periods.
             const pair = rollMeaningPair('action');
             primary = `${pair.a}. ${pair.b}`;
         } else {
             return null;
         }
 
-        // Resolve meanings — automatic in meaning mode, opt-in elsewhere.
         let meanings = { action: null, descriptor: null };
         const wantMeaning = (mode === 'meaning') || state.appendMeaning;
-        if (wantMeaning) {
-            meanings.action = (mode === 'meaning')
-                ? parseMeaningFromPrimary(primary)
-                : rollMeaningPair('action');
+        if (wantMeaning && mode !== 'meaning') {
+            meanings.action = rollMeaningPair('action');
         }
-        // Descriptors only if user asked, and only when meanings are being shown.
         if (wantMeaning && state.rollDescriptors) {
             meanings.descriptor = rollMeaningPair('descriptor');
         }
 
-        // In meaning mode, don't double up: the pair IS the primary.
-        // We'll suppress the meanings overlay for that mode in render/speak.
-        if (mode === 'meaning') {
-            // meanings.action already derived from primary; hide it to avoid duplication.
-            // But descriptors (if enabled) still show as an additional pair.
-            meanings.action = null;
-        }
-
         return { primary, modifiers: [], meanings, details };
-    }
-
-    function parseMeaningFromPrimary(primary) {
-        // primary is "WordA. WordB" for meaning mode
-        const parts = primary.split('. ').map(s => s.trim());
-        if (parts.length === 2) return { a: parts[0], b: parts[1] };
-        return null;
     }
 
     function fmtSigned(n) {
         if (n === 0) return '±0';
         return n > 0 ? `+${n}` : `${n}`;
     }
-
-    /* ============================================================
-     * Formatting for speech & display
-     * ============================================================ */
 
     function formatForSpeech(roll) {
         const parts = [roll.primary];
@@ -770,8 +769,6 @@ yes, and...</textarea>
         if (state.speakDetails && roll.details) {
             parts.push(roll.details);
         }
-        // Join with periods to create natural TTS pauses.
-        // A leading space after punctuation is important for most TTS engines.
         return parts.join('. ') + '.';
     }
 
@@ -783,7 +780,6 @@ yes, and...</textarea>
         const muteTag = state.mute ? ' <span class="mute-indicator">🔇</span>' : '';
         let html = `<span class="primary">${escapeHtml(roll.primary)}</span>`;
 
-        // Compose meaning line(s) for display
         const lines = [];
         if (roll.meanings.action) {
             lines.push(`${escapeHtml(roll.meanings.action.a)} · ${escapeHtml(roll.meanings.action.b)}`);
@@ -794,7 +790,6 @@ yes, and...</textarea>
         if (lines.length) {
             html += `<span class="meanings">${lines.join('<br>')}</span>`;
         }
-
         html += muteTag;
         els.result.innerHTML = html;
     }
@@ -839,15 +834,12 @@ yes, and...</textarea>
         state.history.forEach((h) => {
             const li = document.createElement('li');
             li.title = 'Click to speak again';
-
-            // Build the full spoken string for replay
             const replayParts = [h.primary];
             if (h.meanings.action) replayParts.push(`${h.meanings.action.a}. ${h.meanings.action.b}`);
             if (h.meanings.descriptor) replayParts.push(`${h.meanings.descriptor.a}. ${h.meanings.descriptor.b}`);
             if (state.speakDetails && h.details) replayParts.push(h.details);
             const replayText = replayParts.join('. ') + '.';
 
-            // Build the display value: primary + optional meaning hint
             let val = escapeHtml(h.primary);
             const m = [];
             if (h.meanings.action) m.push(`${escapeHtml(h.meanings.action.a)}·${escapeHtml(h.meanings.action.b)}`);
@@ -869,7 +861,7 @@ yes, and...</textarea>
     }
 
     /* ============================================================
-     * Hint line under textarea
+     * Hint line
      * ============================================================ */
 
     let hintDebounce = null;
@@ -897,23 +889,16 @@ yes, and...</textarea>
     function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
     /* ============================================================
-     * Mode-dependent UI visibility
+     * Mode-dependent visibility
      * ============================================================ */
 
     function syncModeVisibility() {
         const mode = state.mode;
-
-        // Textarea + hint only in standard mode
         els.phrasesGroup.classList.toggle('hidden', mode !== 'standard');
-        // Fate controls only in fate mode
         els.fateGroup.classList.toggle('hidden', mode !== 'fate');
 
-        // "Append meaning words" makes sense in standard & fate, not in meaning mode
-        // (meaning mode already produces meanings).
         const appendLabelVisible = (mode !== 'meaning');
         els.appendMeaningLabel.classList.toggle('hidden', !appendLabelVisible);
-        // If meaning mode, force the checkbox visual state off (but don't mutate
-        // the saved preference — it's restored when leaving meaning mode).
         if (mode === 'meaning') {
             els.appendMeaning.checked = false;
             els.appendMeaning.disabled = true;
@@ -922,8 +907,6 @@ yes, and...</textarea>
             els.appendMeaning.disabled = false;
         }
 
-        // Descriptors toggle: visible whenever meanings can appear.
-        // In standard/fate, only useful if appendMeaning is on.
         const descLabelVisible =
             (mode === 'meaning') || (mode !== 'meaning' && state.appendMeaning);
         els.rollDescriptorsLabel.classList.toggle('hidden', !descLabelVisible);
@@ -933,13 +916,12 @@ yes, and...</textarea>
             els.rollDescriptors.checked = state.rollDescriptors;
         }
 
-        // "Speak roll math" only meaningful in fate mode
         const speakDetailsWrap = els.speakDetails.closest('label');
         if (speakDetailsWrap) speakDetailsWrap.classList.toggle('hidden', mode !== 'fate');
     }
 
     /* ============================================================
-     * Rolling loop
+     * Rolling loop — self-correcting setTimeout chain
      * ============================================================ */
 
     function oneTick() {
@@ -952,11 +934,8 @@ yes, and...</textarea>
     }
 
     function toggleRolling() {
-        if (state.isRolling) {
-            stopAllTimers();
-        } else {
-            startRolling();
-        }
+        if (state.isRolling) stopRolling();
+        else startRolling();
     }
 
     function startRolling() {
@@ -969,16 +948,33 @@ yes, and...</textarea>
         state.isRolling = true;
         els.toggleBtn.textContent = 'Stop Rolling';
 
+        // Immediate first roll
         oneTick();
 
-        state.intervalId = setInterval(oneTick, delayMs);
+        // Self-correcting chain: schedule the next tick relative to a stable
+        // start time so background-tab throttling doesn't accumulate drift.
+        const startTime = Date.now();
+        let nextIndex = 1;
+
+        const scheduleNext = () => {
+            if (!state.isRolling) return;
+            const target = startTime + nextIndex * delayMs;
+            const wait = Math.max(0, target - Date.now());
+            state.intervalId = setTimeout(() => {
+                if (!state.isRolling) return;
+                oneTick();
+                nextIndex++;
+                scheduleNext();
+            }, wait);
+        };
+        scheduleNext();
 
         if (timerMs > 0) {
             const endTime = Date.now() + timerMs;
             state.countdownId = setInterval(() => {
                 const remaining = endTime - Date.now();
                 if (remaining <= 0) {
-                    stopAllTimers();
+                    stopRolling();
                 } else {
                     const m = Math.floor((remaining % 3600000) / 60000);
                     const s = Math.floor((remaining % 60000) / 1000);
@@ -990,28 +986,37 @@ yes, and...</textarea>
         requestWakeLock();
     }
 
-    function stopAllTimers() {
-        clearInterval(state.intervalId);
+    function stopRolling() {
+        state.isRolling = false;
+        clearTimeout(state.intervalId);
         clearTimeout(state.timerId);
         clearInterval(state.countdownId);
         state.intervalId = state.timerId = state.countdownId = null;
-        state.isRolling = false;
         els.toggleBtn.textContent = 'Start Rolling';
         els.result.textContent = 'Stopped';
         els.countdown.textContent = '';
         releaseWakeLock();
     }
 
-    function requestWakeLock() {
+    // Kept for compatibility with Phase A/B references; Phase C uses stopRolling.
+    function stopAllTimers() { stopRolling(); }
+
+    /* ============================================================
+     * Wake lock
+     * ============================================================ */
+
+    async function requestWakeLock() {
         if (!('wakeLock' in navigator)) return;
-        navigator.wakeLock.request('screen').then(sentinel => {
+        if (state.wakeLock) return; // already held
+        try {
+            const sentinel = await navigator.wakeLock.request('screen');
             state.wakeLock = sentinel;
             sentinel.addEventListener('release', () => {
                 if (state.wakeLock === sentinel) state.wakeLock = null;
             });
-        }).catch(err => {
+        } catch (err) {
             console.warn('Wake lock request failed:', err);
-        });
+        }
     }
 
     async function releaseWakeLock() {
@@ -1020,6 +1025,14 @@ yes, and...</textarea>
             state.wakeLock = null;
         }
     }
+
+    // Re-acquire the lock whenever the tab becomes visible again while rolling.
+    // Browsers drop the lock automatically when the tab is backgrounded.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && state.isRolling) {
+            requestWakeLock();
+        }
+    });
 
     /* ============================================================
      * Form ↔ state sync
@@ -1070,14 +1083,12 @@ yes, and...</textarea>
             saveDebounce = setTimeout(() => { syncFormToState(); saveSettings(); }, 300);
         };
 
-        // Mode change: swap visibility, then save
         els.mode.addEventListener('change', () => {
             state.mode = els.mode.value;
             syncModeVisibility();
             scheduleSave();
         });
 
-        // Append-meaning toggle affects descriptor visibility
         els.appendMeaning.addEventListener('change', () => {
             state.appendMeaning = els.appendMeaning.checked;
             syncModeVisibility();
@@ -1109,7 +1120,6 @@ yes, and...</textarea>
 
         els.mute.addEventListener('change', () => {
             state.mute = els.mute.checked;
-            // Re-render last result so the mute tag appears/disappears
             const last = state.history[0];
             if (last) {
                 const fakeRoll = {
@@ -1124,6 +1134,23 @@ yes, and...</textarea>
                 renderRoll(fakeRoll);
             } else {
                 renderRoll(null);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ignore when typing in a form field
+            const tag = (e.target && e.target.tagName) || '';
+            const isTyping = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || e.target?.isContentEditable;
+            if (isTyping) return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                toggleRolling();
+            } else if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                // Manual single roll — doesn't affect the running loop, if any.
+                oneTick();
             }
         });
     }
@@ -1144,7 +1171,6 @@ yes, and...</textarea>
             window.speechSynthesis.addEventListener('voiceschanged', refreshVoices);
         }
 
-        // Restore most recent roll display
         if (state.history.length) {
             const last = state.history[0];
             const fakeRoll = {
@@ -1158,11 +1184,12 @@ yes, and...</textarea>
             };
             renderRoll(fakeRoll);
         }
+
+        console.log(`Audio Oracle v${VERSION}`);
     }
 
     document.addEventListener('DOMContentLoaded', init);
 
-    // Expose for inline handlers
     window.toggleRolling = toggleRolling;
     window.clearHistory  = clearHistory;
     </script>
