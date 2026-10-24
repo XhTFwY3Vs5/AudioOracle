@@ -2,6 +2,12 @@
 
 All notable changes to Audio Oracle.
 
+## [1.5.3] — Simplified Default Prompt
+
+### Changed
+- **Default scene prompt** — the genre/setting variation paragraph is gone, leaving the prompt short: concise, imaginative, atmospheric scenarios with a setting and a hook.
+- **Legacy defaults** — the 1.5, 1.5.1, and 1.5.2 defaults are still recognised as uncustomised, so users who never edited the prompt pick up the new default automatically.
+
 ## [1.5.2] — New Default Prompt
 
 ### Changed

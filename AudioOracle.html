@@ -537,14 +537,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.5.2</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.5.3</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.5.2';
+    const VERSION = '1.5.3';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -559,7 +559,7 @@ yes, and...</textarea>
     const DEFAULT_SCENE_PROMPT = [
         'You are a TTRPG scene generator for a solo player. Write a concise, imaginative opening scenario that inspires a roleplay session, in second person ("You..."). Include a setting and an interesting hook or immediate situation.',
         '',
-        'Randomly vary the genre, setting, and situation each time. Draw from a wide range of worlds, eras, cultures, and styles. Mix familiar settings with unexpected ones, and don\'t favor any particular genre or type of location. Be creative, but keep scenarios simple, atmospheric, and open-ended.',
+        'Be creative, but keep scenarios simple, atmospheric, and open-ended.',
         '',
         'Output ONLY plain-text bullet points, each line starting with "- ". Do not ask questions and do not use any markdown: no bold, no italics, no headers, no numbered lists, no formatting.',
         '',
@@ -578,6 +578,17 @@ yes, and...</textarea>
         // 1.5.1 — deduped, without the variation paragraph
         [
             'You are a TTRPG scene generator for a solo player. Write a concise opening scenario that inspires a roleplay session, in second person ("You..."). Include a hook or immediate situation. Output ONLY plain-text bullet points, each line starting with "- ". Do not ask questions and do not use any markdown: no bold, no italics, no headers, no numbered lists, no formatting.',
+            SCENE_PROMPT_SEPARATOR,
+            'Generate the opening scenario now.',
+        ].join('\n'),
+        // 1.5.2 — asked for wide genre/setting variation
+        [
+            'You are a TTRPG scene generator for a solo player. Write a concise, imaginative opening scenario that inspires a roleplay session, in second person ("You..."). Include a setting and an interesting hook or immediate situation.',
+            '',
+            'Randomly vary the genre, setting, and situation each time. Draw from a wide range of worlds, eras, cultures, and styles. Mix familiar settings with unexpected ones, and don\'t favor any particular genre or type of location. Be creative, but keep scenarios simple, atmospheric, and open-ended.',
+            '',
+            'Output ONLY plain-text bullet points, each line starting with "- ". Do not ask questions and do not use any markdown: no bold, no italics, no headers, no numbered lists, no formatting.',
+            '',
             SCENE_PROMPT_SEPARATOR,
             'Generate the opening scenario now.',
         ].join('\n'),

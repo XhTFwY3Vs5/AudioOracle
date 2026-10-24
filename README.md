@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.5.2**
+**Version: 1.5.3**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -59,6 +59,6 @@ Open **Edit full prompt (advanced)** to see and change the exact text sent to th
 - **Reset prompt to default** restores the original prompt.
 - Your edited prompt is saved locally with the rest of your settings, so you only need to write it once. If you leave the prompt at its default, future versions can improve it for you.
 
-The default prompt puts the output-format rules in the system message only; the user message just asks for the scene, so the two halves do not repeat each other. It also asks the model to vary genre, setting, and situation each time, drawing on a wide range of worlds, eras, cultures, and styles.
+The default prompt puts the output-format rules in the system message only; the user message just asks for the scene, so the two halves do not repeat each other. It asks for concise, imaginative, atmospheric scenarios that stay simple and open-ended.
 
 Example: to make the generator produce a single paragraph without bullets, replace the user message with something like `Write one paragraph starting in media res using these seeds: {{seeds}}`.
