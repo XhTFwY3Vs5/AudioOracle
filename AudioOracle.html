@@ -537,14 +537,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.5.1</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.5.2</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.5.1';
+    const VERSION = '1.5.2';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -557,19 +557,36 @@ yes, and...</textarea>
     // the scene so the two halves do not repeat each other.
     const SCENE_PROMPT_SEPARATOR = '===USER PROMPT===';
     const DEFAULT_SCENE_PROMPT = [
-        'You are a TTRPG scene generator for a solo player. Write a concise opening scenario that inspires a roleplay session, in second person ("You..."). Include a hook or immediate situation. Output ONLY plain-text bullet points, each line starting with "- ". Do not ask questions and do not use any markdown: no bold, no italics, no headers, no numbered lists, no formatting.',
+        'You are a TTRPG scene generator for a solo player. Write a concise, imaginative opening scenario that inspires a roleplay session, in second person ("You..."). Include a setting and an interesting hook or immediate situation.',
+        '',
+        'Randomly vary the genre, setting, and situation each time. Draw from a wide range of worlds, eras, cultures, and styles. Mix familiar settings with unexpected ones, and don\'t favor any particular genre or type of location. Be creative, but keep scenarios simple, atmospheric, and open-ended.',
+        '',
+        'Output ONLY plain-text bullet points, each line starting with "- ". Do not ask questions and do not use any markdown: no bold, no italics, no headers, no numbered lists, no formatting.',
+        '',
         SCENE_PROMPT_SEPARATOR,
         'Generate the opening scenario now.',
     ].join('\n');
-    // Earlier builds shipped a default prompt that repeated the format rules in the user
-    // message. Saved copies of it are treated as "not customised" so this fix reaches
-    // users who never edited the prompt.
-    const LEGACY_SCENE_PROMPT = [
-        'You are a TTRPG scene generator for a solo player. Generate a concise opening scenario using ONLY bullet points that inspires a roleplay session. Include a hook or immediate situation. Each line must start with "- " or "• ". Do not ask questions. Do not use ANY markdown: no bold, no italics, no headers, no numbered lists, no formatting. Just plain text bullet points. Write in second person ("You...").',
-        SCENE_PROMPT_SEPARATOR,
-        'Generate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.',
-    ].join('\n');
+    // Defaults shipped by older builds. A saved copy of one of these is treated as
+    // "not customised" so default-prompt changes reach users who never edited it.
+    const LEGACY_SCENE_PROMPTS = [
+        // 1.5 — repeated the format rules in the user message
+        [
+            'You are a TTRPG scene generator for a solo player. Generate a concise opening scenario using ONLY bullet points that inspires a roleplay session. Include a hook or immediate situation. Each line must start with "- " or "• ". Do not ask questions. Do not use ANY markdown: no bold, no italics, no headers, no numbered lists, no formatting. Just plain text bullet points. Write in second person ("You...").',
+            SCENE_PROMPT_SEPARATOR,
+            'Generate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.',
+        ].join('\n'),
+        // 1.5.1 — deduped, without the variation paragraph
+        [
+            'You are a TTRPG scene generator for a solo player. Write a concise opening scenario that inspires a roleplay session, in second person ("You..."). Include a hook or immediate situation. Output ONLY plain-text bullet points, each line starting with "- ". Do not ask questions and do not use any markdown: no bold, no italics, no headers, no numbered lists, no formatting.',
+            SCENE_PROMPT_SEPARATOR,
+            'Generate the opening scenario now.',
+        ].join('\n'),
+    ];
     const normalizePrompt = s => String(s).replace(/\s+/g, ' ').trim();
+    const isLegacyPrompt = s => {
+        const normalized = normalizePrompt(s);
+        return LEGACY_SCENE_PROMPTS.some(p => normalizePrompt(p) === normalized);
+    };
     const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
     const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -774,7 +791,7 @@ yes, and...</textarea>
         state.sceneSeeds  = typeof raw.sceneSeeds === 'string' ? raw.sceneSeeds : '';
         state.scenePrompt = typeof raw.scenePrompt === 'string'
             && raw.scenePrompt.trim()
-            && normalizePrompt(raw.scenePrompt) !== normalizePrompt(LEGACY_SCENE_PROMPT)
+            && !isLegacyPrompt(raw.scenePrompt)
             ? raw.scenePrompt
             : '';
     }
