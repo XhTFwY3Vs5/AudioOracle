@@ -2,6 +2,15 @@
 
 All notable changes to Audio Oracle.
 
+## [1.5.1] — Prompt Dedupe
+
+### Fixed
+- **Duplicated prompt rules** — the default user message repeated the bullet-format and no-markdown rules already given in the system prompt. The system prompt now owns the output rules and the user message only asks for the scene, so your seeds and instructions are no longer competing with redundant boilerplate.
+- **Stale default prompt** — a saved copy of the old duplicated default is now recognised and replaced by the new default, so the fix also reaches anyone who never edited the prompt. Custom prompts are left untouched.
+
+### Changed
+- **Only edited prompts are stored** — the default prompt is no longer written to local storage, so future default improvements apply automatically to anyone who never customised it.
+
 ## [1.5] — Editable Scene Prompt
 
 ### Added

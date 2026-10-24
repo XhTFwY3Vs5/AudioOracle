@@ -537,14 +537,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.5</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.5.1</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.5';
+    const VERSION = '1.5.1';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -553,12 +553,23 @@ yes, and...</textarea>
     // The full scene prompt is user-editable. Everything before the separator is the
     // system message, everything after it is the user message. {{seeds}} is replaced
     // with the seeds text (seeds are appended automatically if the placeholder is absent).
+    // The system message owns the output-format rules; the user message only asks for
+    // the scene so the two halves do not repeat each other.
     const SCENE_PROMPT_SEPARATOR = '===USER PROMPT===';
     const DEFAULT_SCENE_PROMPT = [
+        'You are a TTRPG scene generator for a solo player. Write a concise opening scenario that inspires a roleplay session, in second person ("You..."). Include a hook or immediate situation. Output ONLY plain-text bullet points, each line starting with "- ". Do not ask questions and do not use any markdown: no bold, no italics, no headers, no numbered lists, no formatting.',
+        SCENE_PROMPT_SEPARATOR,
+        'Generate the opening scenario now.',
+    ].join('\n');
+    // Earlier builds shipped a default prompt that repeated the format rules in the user
+    // message. Saved copies of it are treated as "not customised" so this fix reaches
+    // users who never edited the prompt.
+    const LEGACY_SCENE_PROMPT = [
         'You are a TTRPG scene generator for a solo player. Generate a concise opening scenario using ONLY bullet points that inspires a roleplay session. Include a hook or immediate situation. Each line must start with "- " or "• ". Do not ask questions. Do not use ANY markdown: no bold, no italics, no headers, no numbered lists, no formatting. Just plain text bullet points. Write in second person ("You...").',
         SCENE_PROMPT_SEPARATOR,
         'Generate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.',
     ].join('\n');
+    const normalizePrompt = s => String(s).replace(/\s+/g, ' ').trim();
     const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
     const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -716,7 +727,7 @@ yes, and...</textarea>
         sceneModel: 'openrouter/free',
         sceneModelManual: '',
         sceneSeeds: '',
-        scenePrompt: DEFAULT_SCENE_PROMPT,
+        scenePrompt: '',
         sceneCooldownUntil: 0,
         sceneCooldownId: null,
     };
@@ -761,9 +772,11 @@ yes, and...</textarea>
         state.sceneModel  = typeof raw.sceneModel === 'string' ? raw.sceneModel : 'openrouter/free';
         state.sceneModelManual = typeof raw.sceneModelManual === 'string' ? raw.sceneModelManual : '';
         state.sceneSeeds  = typeof raw.sceneSeeds === 'string' ? raw.sceneSeeds : '';
-        state.scenePrompt = typeof raw.scenePrompt === 'string' && raw.scenePrompt.trim()
+        state.scenePrompt = typeof raw.scenePrompt === 'string'
+            && raw.scenePrompt.trim()
+            && normalizePrompt(raw.scenePrompt) !== normalizePrompt(LEGACY_SCENE_PROMPT)
             ? raw.scenePrompt
-            : DEFAULT_SCENE_PROMPT;
+            : '';
     }
 
     function saveSettings() {
@@ -1174,7 +1187,9 @@ yes, and...</textarea>
         state.sceneModel  = els.sceneModel.value;
         state.sceneModelManual = els.sceneModelManual.value;
         state.sceneSeeds  = els.sceneSeeds.value;
-        state.scenePrompt = els.sceneFullPrompt.value.trim() || DEFAULT_SCENE_PROMPT;
+        state.scenePrompt = els.sceneFullPrompt.value.trim() === DEFAULT_SCENE_PROMPT.trim()
+            ? ''
+            : els.sceneFullPrompt.value;
     }
 
     function stateToForm() {
