@@ -2,6 +2,38 @@
 
 All notable changes to Audio Oracle.
 
+## [1.3] — Phase D: Scene Generator
+
+### Added
+- **Scene Generator** — generate TTRPG opening scenarios via OpenRouter API:
+  - API key input (password-protected)
+  - Model selector or manual input (auto-selects openrouter/free)
+  - Optional seeds to incorporate into the prompt
+  - Generate Scenario button
+  - Fetch Models button (loads free models from OpenRouter)
+  - Cleaned bullet-point output with markdown formatting stripped (bold/italic → plain text, numbered lists → bullets)
+- `VERSION` bumped to 1.3 in `AudioOracle.html`. See docs/README for details.
+
+### Changed
+- **Removed** "Speak roll math (Fate)" checkbox and roll-math-speak behavior.
+- **Roll display** now shows full dice values (`roll-details` line under results), previously only bold text was shown.
+
+### Fixed
+- None user-facing.
+
+## [1.2] — Fixes & UI polish
+
+### Added
+- **Roll values** — full dice breakdown is now displayed under each result.
+- Keyboard shortcut **S** for generating scenes.
+
+### Changed
+- Removed the "Speak roll math (Fate)" option; Fate rolls no longer read the arithmetic aloud.
+- Footer label updated from v1.1 to v1.2.
+
+### Fixed
+- (none beyond polish)
+
 ## [1.1] — Phase C: Polish & Docs
 
 ### Added
