@@ -58,6 +58,15 @@
             margin-top: 6px;
             letter-spacing: 0.02em;
         }
+        #result .roll-details {
+            display: block;
+            font-size: 0.35em;
+            font-weight: 400;
+            color: var(--color-muted);
+            margin-top: 8px;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.01em;
+        }
         #result .mute-indicator {
             font-size: 0.6em;
             margin-left: 0.3em;
@@ -236,7 +245,6 @@
             font-size: 0.95em;
         }
 
-        /* First-run help */
         details.first-run-help {
             width: 100%;
             font-size: 0.9em;
@@ -271,7 +279,7 @@
                 <li><strong>Mythic Meaning</strong> — rolls Action word pairs for inspiration. Add descriptors for two more words.</li>
                 <li><strong>Append meaning words</strong> — in Standard or Fate, adds an Action pair to every roll.</li>
                 <li><strong>Keyboard:</strong> <kbd>Space</kbd> starts/stops. <kbd>R</kbd> rolls once. Click a history entry to re-hear it.</li>
-                <li>On phones, voice list may take a moment to populate. Grant the page screen-wake permission for long sessions.</li>
+                <li>On phones, the voice list may take a moment to populate. Grant the page screen-wake permission for long sessions.</li>
             </ul>
         </details>
 
@@ -366,7 +374,6 @@ yes, and...</textarea>
 
             <div class="form-row">
                 <label class="checkbox-label"><input id="mute" type="checkbox"> Mute audio (display still updates)</label>
-                <label class="checkbox-label"><input id="speakDetails" type="checkbox"> Speak roll math (Fate)</label>
             </div>
 
             <button id="toggleBtn" onclick="toggleRolling()">Start Rolling</button>
@@ -387,7 +394,7 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.1</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.2</div>
 
     </main>
 
@@ -398,7 +405,7 @@ yes, and...</textarea>
      * Constants
      * ============================================================ */
 
-    const VERSION = '1.1';
+    const VERSION = '1.2';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -429,7 +436,6 @@ yes, and...</textarea>
         pitch:       $('pitch'),
         pitchVal:    $('pitchVal'),
         mute:        $('mute'),
-        speakDetails:$('speakDetails'),
         countdown:   $('countdown'),
         toggleBtn:   $('toggleBtn'),
         historyList: $('historyList'),
@@ -512,12 +518,8 @@ yes, and...</textarea>
         "Messy","Mighty","Military","Modern","Mundane","Mysterious","Natural","Normal","Odd","Old",
         "Pale","Peaceful","Petite","Plain","Poor","Powerful","Protective","Quaint","Rare","Reassuring",
         "Remarkable","Rotten","Rough","Ruined","Rustic","Scary","Shocking","Simple","Small","Smooth",
-        "Soft","Strong","Stylish","Unpleasant","Valuable","Vibrant","Watery","Weak","Young","Warm"
+        "Soft","Strong","Stylish","Unpleasant","Valuable","Vibrant","Warm","Watery","Weak","Young"
     ];
-    // NOTE: entry order in DESCRIPTOR_2 differs from earlier phases at the tail
-    // (Warm/Watery swapped, and Young/Warm placement). The book lists Warm=97,
-    // Watery=98, Weak=99, Young=100. This array matches the book: index 96 Warm,
-    // 97 Watery, 98 Weak, 99 Young.
 
     console.assert(ACTION_1.length === 100, 'ACTION_1 length mismatch');
     console.assert(ACTION_2.length === 100, 'ACTION_2 length mismatch');
@@ -530,7 +532,7 @@ yes, and...</textarea>
 
     const state = {
         isRolling:  false,
-        intervalId: null,   // now a self-correcting setTimeout chain
+        intervalId: null,
         timerId:    null,
         countdownId:null,
         wakeLock:   null,
@@ -547,7 +549,6 @@ yes, and...</textarea>
         rate:       1,
         pitch:      1,
         mute:       false,
-        speakDetails: false,
         history:    [],
     };
 
@@ -586,7 +587,6 @@ yes, and...</textarea>
         state.rate       = clamp(numOr(raw.rate, 1), 0.7, 1.3);
         state.pitch      = clamp(numOr(raw.pitch, 1), 0.8, 1.2);
         state.mute       = !!raw.mute;
-        state.speakDetails = !!raw.speakDetails;
         state.history    = Array.isArray(raw.history) ? raw.history.slice(0, HISTORY_LIMIT) : [];
     }
 
@@ -605,7 +605,6 @@ yes, and...</textarea>
             rate:     state.rate,
             pitch:    state.pitch,
             mute:     state.mute,
-            speakDetails: state.speakDetails,
             history:  state.history,
         };
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(blob)); }
@@ -766,9 +765,6 @@ yes, and...</textarea>
         if (roll.meanings.descriptor) {
             parts.push(`${roll.meanings.descriptor.a}. ${roll.meanings.descriptor.b}`);
         }
-        if (state.speakDetails && roll.details) {
-            parts.push(roll.details);
-        }
         return parts.join('. ') + '.';
     }
 
@@ -789,6 +785,9 @@ yes, and...</textarea>
         }
         if (lines.length) {
             html += `<span class="meanings">${lines.join('<br>')}</span>`;
+        }
+        if (roll.details) {
+            html += `<span class="roll-details">${escapeHtml(roll.details)}</span>`;
         }
         html += muteTag;
         els.result.innerHTML = html;
@@ -834,10 +833,10 @@ yes, and...</textarea>
         state.history.forEach((h) => {
             const li = document.createElement('li');
             li.title = 'Click to speak again';
+
             const replayParts = [h.primary];
             if (h.meanings.action) replayParts.push(`${h.meanings.action.a}. ${h.meanings.action.b}`);
             if (h.meanings.descriptor) replayParts.push(`${h.meanings.descriptor.a}. ${h.meanings.descriptor.b}`);
-            if (state.speakDetails && h.details) replayParts.push(h.details);
             const replayText = replayParts.join('. ') + '.';
 
             let val = escapeHtml(h.primary);
@@ -915,9 +914,6 @@ yes, and...</textarea>
         } else {
             els.rollDescriptors.checked = state.rollDescriptors;
         }
-
-        const speakDetailsWrap = els.speakDetails.closest('label');
-        if (speakDetailsWrap) speakDetailsWrap.classList.toggle('hidden', mode !== 'fate');
     }
 
     /* ============================================================
@@ -948,11 +944,8 @@ yes, and...</textarea>
         state.isRolling = true;
         els.toggleBtn.textContent = 'Stop Rolling';
 
-        // Immediate first roll
         oneTick();
 
-        // Self-correcting chain: schedule the next tick relative to a stable
-        // start time so background-tab throttling doesn't accumulate drift.
         const startTime = Date.now();
         let nextIndex = 1;
 
@@ -998,16 +991,13 @@ yes, and...</textarea>
         releaseWakeLock();
     }
 
-    // Kept for compatibility with Phase A/B references; Phase C uses stopRolling.
-    function stopAllTimers() { stopRolling(); }
-
     /* ============================================================
      * Wake lock
      * ============================================================ */
 
     async function requestWakeLock() {
         if (!('wakeLock' in navigator)) return;
-        if (state.wakeLock) return; // already held
+        if (state.wakeLock) return;
         try {
             const sentinel = await navigator.wakeLock.request('screen');
             state.wakeLock = sentinel;
@@ -1026,8 +1016,6 @@ yes, and...</textarea>
         }
     }
 
-    // Re-acquire the lock whenever the tab becomes visible again while rolling.
-    // Browsers drop the lock automatically when the tab is backgrounded.
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && state.isRolling) {
             requestWakeLock();
@@ -1051,7 +1039,6 @@ yes, and...</textarea>
         state.rate       = clamp(parseFloat(els.rate.value) || 1, 0.7, 1.3);
         state.pitch      = clamp(parseFloat(els.pitch.value) || 1, 0.8, 1.2);
         state.mute       = els.mute.checked;
-        state.speakDetails = els.speakDetails.checked;
     }
 
     function stateToForm() {
@@ -1066,7 +1053,6 @@ yes, and...</textarea>
         els.rate.value    = state.rate;
         els.pitch.value   = state.pitch;
         els.mute.checked  = state.mute;
-        els.speakDetails.checked = state.speakDetails;
         els.rateVal.textContent  = Number(state.rate).toFixed(2);
         els.pitchVal.textContent = Number(state.pitch).toFixed(2);
         syncModeVisibility();
@@ -1096,7 +1082,7 @@ yes, and...</textarea>
         });
 
         [els.interval, els.timer, els.voice, els.rate, els.pitch,
-         els.mute, els.odds, els.chaos, els.speakDetails, els.rollDescriptors].forEach(el => {
+         els.mute, els.odds, els.chaos, els.rollDescriptors].forEach(el => {
             el.addEventListener('change', scheduleSave);
         });
 
@@ -1137,9 +1123,7 @@ yes, and...</textarea>
             }
         });
 
-        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            // Ignore when typing in a form field
             const tag = (e.target && e.target.tagName) || '';
             const isTyping = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || e.target?.isContentEditable;
             if (isTyping) return;
@@ -1149,7 +1133,6 @@ yes, and...</textarea>
                 toggleRolling();
             } else if (e.key === 'r' || e.key === 'R') {
                 e.preventDefault();
-                // Manual single roll — doesn't affect the running loop, if any.
                 oneTick();
             }
         });
