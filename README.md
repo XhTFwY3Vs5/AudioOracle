@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.3**
+**Version: 1.5**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -10,12 +10,12 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
   - **Standard** — draws a phrase from your list.
   - **Mythic Fate** — rolls the Mythic Game Master Emulator 2e Fate Check (2d10 + odds modifier + chaos modifier).
   - **Mythic Meaning** — rolls Action word pairs (and optionally Descriptor pairs) for inspiration.
-- **Scene Generator** — generate TTRPG scenarios via OpenRouter API
+- **Scene Generator** — generate TTRPG scenarios via OpenRouter API, with a fully editable prompt.
 - **Weighted phrases** — `[3] yes` makes "yes" three times as likely. Fractions and `[0]` (disabled) supported. Fully backward compatible with unweighted lists.
 - **Append meaning words** — in Standard or Fate mode, add a Mythic Action pair to every roll.
 - **Roll history** — last 10 results, timestamped. Click to re-speak.
 - **Voice controls** — pick a voice, adjust rate and pitch. Mute while keeping the display live.
-- **Keyboard shortcuts** — `Space` start/stop, `R` roll once, `S` generate scene
+- **Keyboard shortcuts** — `Space` start/stop, `R` roll once
 - **Customizable interval and optional timer.**
 - **Screen wake lock** — keeps the screen on during sessions, and re-acquires after tab switches.
 - **Settings persistence** — phrases, mode, odds, chaos, voice, rate, pitch, mute, history, and more are saved locally.
@@ -23,7 +23,7 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 ## How to Use
 
 1. Save the provided HTML as `AudioOracle.html` and open it in a modern browser.
-2. To use the Scene Generator, enter your OpenRouter API key and optionally provide seed ideas.
+2. To use the Scene Generator, enter your OpenRouter API key, optionally provide seed ideas, and optionally edit the full prompt under *Edit full prompt (advanced)*.
 3. Pick a mode.
    - **Standard**: edit the phrase list. Optional weighted syntax `[3] yes`.
    - **Mythic Fate**: set Odds (Certain … Impossible) and Chaos Factor (1–9).
@@ -48,3 +48,15 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 - **Generate Scenario** — click to generate a bullet-point TTRPG opening scenario using OpenRouter models.
 - **Fetch Models** — load a list of free models from OpenRouter.
 - **OpenRouter** — requires an OpenRouter account (free tier has many free models available).
+
+#### Editing the prompt
+
+Open **Edit full prompt (advanced)** to see and change the exact text sent to the model:
+
+- Everything above the `===USER PROMPT===` line is the **system prompt**.
+- Everything below it is the **user message**.
+- `{{seeds}}` is replaced with the contents of the Seeds field. Put it anywhere you like; if you omit it, the seeds are added to the top of the user message automatically.
+- **Reset prompt to default** restores the original prompt.
+- Your edited prompt is saved locally with the rest of your settings, so you only need to write it once.
+
+Example: to make the generator produce a single paragraph without bullets, replace the user message with something like `Write one paragraph starting in media res using these seeds: {{seeds}}`.

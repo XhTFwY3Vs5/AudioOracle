@@ -2,6 +2,44 @@
 
 All notable changes to Audio Oracle.
 
+## [1.5] — Editable Scene Prompt
+
+### Added
+- **Editable full prompt** — the scene generator now has a collapsible *Edit full prompt (advanced)* area containing the exact text sent to the model. Everything above the `===USER PROMPT===` line is the system prompt; everything below it is the user message. Your edits are saved locally.
+- **`{{seeds}}` placeholder** — put `{{seeds}}` anywhere in the prompt to control where the seeds text appears. If you leave it out, seeds are appended to the user message automatically.
+- **Reset prompt to default** — restores the original prompt at any time.
+
+### Changed
+- **Removed randomised scene constraints** — the genre/setting/tone/opening/complication/sensory pools, the anti-cliché list, the recent-scene memory, and the forced sampling overrides from 1.4/1.4.1 are gone. They injected static filler into every request and diluted the player's own seeds.
+
+### Fixed
+- **Scene creativity** — scene prompts are no longer padded with canned constraints, so the model works from your seeds and instructions instead of being steered toward a fixed set of stock scenes.
+
+## [1.4.1] — Seed Fidelity
+
+### Fixed
+- **Seeds ignored** — random creative constraints were overpowering the optional seeds. Seeds are now treated as mandatory canon in both the system and user prompts: every seed must be honored, content seeds must appear concretely, and any conflicting constraint, anti-cliché rule, or recent-scene rule is discarded instead.
+- **Seeded scenes** — when seeds are present, genre/setting constraints are now fallbacks only, and the remaining random choices are limited to execution details (tone, staging, complication, sensory anchor).
+- **UI hint** — the seeds field now explains that seeds are mandatory canon.
+
+### Changed
+- **Seeded temperature** — when seeds are present, temperature drops from 0.95 to 0.85 to improve instruction adherence while the random constraints still vary the execution.
+
+## [1.4] — Scene Variety
+
+### Added
+- **Randomised scene constraints** — every generation now receives a fresh genre, setting, tone, opening move, complication, and sensory anchor, so scenarios branch out instead of repeating cottages and forests.
+- **Anti-cliché rules** — the generator explicitly avoids waking up, amnesia, prophecy/chosen-one plots, hooded strangers with vague warnings, generic taverns/forests/villages, and other overused openings.
+- **Recent-scene memory** — the last five scenarios are remembered and passed back to the model so it does not recycle their settings, opening beats, or central ideas. This memory is saved locally.
+- **Higher-variety sampling** — requests now use temperature 0.95, top-p 0.95, and repetition penalties.
+
+### Changed
+- **Scene prompt** — now demands in-media-res openings, a specific sensory detail, a named or clearly described element, and an actionable hook.
+- **Output length** — scenarios are now 4–6 focused bullet points.
+
+### Fixed
+- None user-facing.
+
 ## [1.3] — Phase D: Scene Generator
 
 ### Added

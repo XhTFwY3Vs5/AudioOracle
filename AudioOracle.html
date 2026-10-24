@@ -187,6 +187,35 @@
         }
         details.syntax-help ul, details.scene-help ul { margin: 6px 0 0 0; padding-left: 20px; }
 
+        details.scene-prompt-edit {
+            font-size: 0.9em;
+            color: #555;
+        }
+        details.scene-prompt-edit summary {
+            cursor: pointer;
+            color: var(--color-primary);
+            user-select: none;
+        }
+        details.scene-prompt-edit code {
+            background: #eee;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.9em;
+        }
+        #scene-full-prompt {
+            min-height: 220px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85em;
+            line-height: 1.45;
+        }
+        .scene-prompt-hint {
+            font-size: 0.8em;
+            opacity: 0.75;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
         .hidden { display: none !important; }
 
         button {
@@ -375,6 +404,21 @@
                 <textarea id="scene-seeds" rows="3" placeholder="e.g. dark forest, a stranger with a letter, cyberpunk alley..."></textarea>
             </div>
 
+            <details class="scene-prompt-edit" style="margin-top: 8px;">
+                <summary>Edit full prompt (advanced)</summary>
+                <div class="form-group" style="margin-top: 6px;">
+                    <label for="scene-full-prompt">Full prompt sent to the LLM:</label>
+                    <textarea id="scene-full-prompt" rows="12" spellcheck="false"></textarea>
+                    <div class="scene-prompt-hint">
+                        Everything above <code>===USER PROMPT===</code> is the system prompt; everything below it is the user message.
+                        Put <code>{{seeds}}</code> where the seeds text should go — if you omit it, seeds are appended to the user message automatically.
+                    </div>
+                    <div class="scene-actions" style="margin-top: 6px;">
+                        <button type="button" class="secondary" id="scene-prompt-reset">Reset prompt to default</button>
+                    </div>
+                </div>
+            </details>
+
             <div class="scene-actions">
                 <button type="button" class="scene-btn" id="scene-generate-btn">Generate Scenario</button>
                 <button type="button" class="secondary" id="scene-fetch-models-btn" title="Fetch free model list from OpenRouter">Fetch Models</button>
@@ -493,18 +537,28 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.3</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.5</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.3';
+    const VERSION = '1.5';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
     const SCENE_COOLDOWN_MS = 10000;
+
+    // The full scene prompt is user-editable. Everything before the separator is the
+    // system message, everything after it is the user message. {{seeds}} is replaced
+    // with the seeds text (seeds are appended automatically if the placeholder is absent).
+    const SCENE_PROMPT_SEPARATOR = '===USER PROMPT===';
+    const DEFAULT_SCENE_PROMPT = [
+        'You are a TTRPG scene generator for a solo player. Generate a concise opening scenario using ONLY bullet points that inspires a roleplay session. Include a hook or immediate situation. Each line must start with "- " or "• ". Do not ask questions. Do not use ANY markdown: no bold, no italics, no headers, no numbered lists, no formatting. Just plain text bullet points. Write in second person ("You...").',
+        SCENE_PROMPT_SEPARATOR,
+        'Generate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.',
+    ].join('\n');
     const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
     const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -543,6 +597,8 @@ yes, and...</textarea>
         sceneModel:     $('scene-model'),
         sceneModelManual: $('scene-model-manual'),
         sceneSeeds:     $('scene-seeds'),
+        sceneFullPrompt: $('scene-full-prompt'),
+        scenePromptReset: $('scene-prompt-reset'),
         sceneGenerateBtn: $('scene-generate-btn'),
         sceneFetchModelsBtn: $('scene-fetch-models-btn'),
         sceneStatus:    $('scene-status'),
@@ -660,6 +716,7 @@ yes, and...</textarea>
         sceneModel: 'openrouter/free',
         sceneModelManual: '',
         sceneSeeds: '',
+        scenePrompt: DEFAULT_SCENE_PROMPT,
         sceneCooldownUntil: 0,
         sceneCooldownId: null,
     };
@@ -704,6 +761,9 @@ yes, and...</textarea>
         state.sceneModel  = typeof raw.sceneModel === 'string' ? raw.sceneModel : 'openrouter/free';
         state.sceneModelManual = typeof raw.sceneModelManual === 'string' ? raw.sceneModelManual : '';
         state.sceneSeeds  = typeof raw.sceneSeeds === 'string' ? raw.sceneSeeds : '';
+        state.scenePrompt = typeof raw.scenePrompt === 'string' && raw.scenePrompt.trim()
+            ? raw.scenePrompt
+            : DEFAULT_SCENE_PROMPT;
     }
 
     function saveSettings() {
@@ -726,6 +786,7 @@ yes, and...</textarea>
             sceneModel:  state.sceneModel,
             sceneModelManual: state.sceneModelManual,
             sceneSeeds:  state.sceneSeeds,
+            scenePrompt: state.scenePrompt,
         };
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(blob)); }
         catch (_) { /* storage disabled — non-fatal */ }
@@ -1113,6 +1174,7 @@ yes, and...</textarea>
         state.sceneModel  = els.sceneModel.value;
         state.sceneModelManual = els.sceneModelManual.value;
         state.sceneSeeds  = els.sceneSeeds.value;
+        state.scenePrompt = els.sceneFullPrompt.value.trim() || DEFAULT_SCENE_PROMPT;
     }
 
     function stateToForm() {
@@ -1133,6 +1195,7 @@ yes, and...</textarea>
         els.sceneModel.value  = state.sceneModel;
         els.sceneModelManual.value = state.sceneModelManual;
         els.sceneSeeds.value  = state.sceneSeeds;
+        els.sceneFullPrompt.value = state.scenePrompt || DEFAULT_SCENE_PROMPT;
         syncModeVisibility();
     }
 
@@ -1207,6 +1270,29 @@ yes, and...</textarea>
         state.sceneCooldownId = setInterval(tick, 500);
     }
 
+    function splitScenePrompt(raw) {
+        const match = String(raw).match(/^[ \t]*=+[ \t]*USER PROMPT[ \t]*=+[ \t]*$/im);
+        if (!match) return { system: String(raw).trim(), user: '' };
+        const idx = match.index;
+        return {
+            system: raw.slice(0, idx).trim(),
+            user: raw.slice(idx + match[0].length).trim(),
+        };
+    }
+
+    function buildScenePrompts(raw, seeds) {
+        const { system, user } = splitScenePrompt(raw);
+        const hasPlaceholder = /\{\{\s*seeds\s*\}\}/i.test(raw);
+        const fill = text => text.replace(/\{\{\s*seeds\s*\}\}/gi, seeds);
+        let userPrompt = fill(user);
+        if (seeds && !hasPlaceholder) {
+            userPrompt = userPrompt
+                ? `Seeds/ideas to incorporate: ${seeds}\n\n${userPrompt}`
+                : `Seeds/ideas to incorporate: ${seeds}`;
+        }
+        return { systemPrompt: fill(system), userPrompt };
+    }
+
     async function generateScene() {
         const key = els.sceneApiKey.value.trim();
         if (!key) { setSceneStatus('Enter an API key first.', 'error'); return; }
@@ -1214,10 +1300,10 @@ yes, and...</textarea>
         const model = manual || els.sceneModel.value;
         const seeds = els.sceneSeeds.value.trim();
 
-        const systemPrompt = 'You are a TTRPG scene generator for a solo player. Generate a concise opening scenario using ONLY bullet points that inspires a roleplay session. Include a hook or immediate situation. Each line must start with "- " or "• ". Do not ask questions. Do not use ANY markdown: no bold, no italics, no headers, no numbered lists, no formatting. Just plain text bullet points. Write in second person ("You...").';
-        const userPrompt = seeds
-            ? `Seeds/ideas to incorporate: ${seeds}\n\nGenerate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.`
-            : 'Generate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.';
+        const { systemPrompt, userPrompt } = buildScenePrompts(
+            els.sceneFullPrompt.value.trim() || DEFAULT_SCENE_PROMPT,
+            seeds
+        );
 
         setSceneStatus('Generating…');
         els.sceneGenerateBtn.disabled = true;
@@ -1354,6 +1440,13 @@ yes, and...</textarea>
         els.sceneModel.addEventListener('change', scheduleSave);
         els.sceneModelManual.addEventListener('change', scheduleSave);
         els.sceneSeeds.addEventListener('change', scheduleSave);
+        els.sceneFullPrompt.addEventListener('change', scheduleSave);
+        els.scenePromptReset.addEventListener('click', () => {
+            els.sceneFullPrompt.value = DEFAULT_SCENE_PROMPT;
+            syncFormToState();
+            saveSettings();
+            setSceneStatus('Prompt reset to default.', 'success');
+        });
     }
 
     /* ============================================================
