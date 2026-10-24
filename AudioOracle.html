@@ -1214,10 +1214,10 @@ yes, and...</textarea>
         const model = manual || els.sceneModel.value;
         const seeds = els.sceneSeeds.value.trim();
 
-        const systemPrompt = 'You are a TTRPG scene generator for a solo player lying in bed. Generate a concise opening scenario using bullet points that inspires a roleplay session. Include a hook or immediate situation. Use bullet points (starting with "- " or "• ") to create a scenario-based outline. Do not ask questions. Do not use markdown. Write in second person ("You...").';
+        const systemPrompt = 'You are a TTRPG scene generator for a solo player lying in bed. Generate a concise opening scenario using ONLY bullet points that inspires a roleplay session. Include a hook or immediate situation. Each line must start with "- " or "• ". Do not ask questions. Do not use ANY markdown: no bold, no italics, no headers, no numbered lists, no formatting. Just plain text bullet points. Write in second person ("You...").';
         const userPrompt = seeds
-            ? `Seeds/ideas to incorporate: ${seeds}\n\nGenerate the opening scene.`
-            : 'Generate an opening scene.';
+            ? `Seeds/ideas to incorporate: ${seeds}\n\nGenerate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.`
+            : 'Generate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.';
 
         setSceneStatus('Generating…');
         els.sceneGenerateBtn.disabled = true;
@@ -1244,7 +1244,22 @@ yes, and...</textarea>
             const data = await res.json();
             const content = data.choices?.[0]?.message?.content;
             if (!content) throw new Error('Empty response from model.');
-            showScene(content);
+            // Clean up stray markdown: strip bold/italic, replace numbered lists with bullets, keep only bullet format
+            let cleaned = content
+                .replace(/\*\*(.*?)\*\*/g, '$1')   // bold
+                .replace(/\*(.*?)\*/g, '$1')        // italic
+                .replace(/__(.*?)__/g, '$1')        // bold underscore
+                .replace(/_(.*?)_/g, '$1')          // italic underscore
+                .replace(/^\s*\d+\.\s+/gm, '- ')    // numbered list -> bullet
+                .replace(/^\s*[-•]\s+/gm, '- ');   // normalize bullets
+            // Ensure each line is either a bullet or empty
+            cleaned = cleaned.split('\n').map(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return '';
+                if (!trimmed.startsWith('- ')) return '- ' + trimmed;
+                return trimmed;
+            }).join('\n');
+            showScene(cleaned);
             setSceneStatus(`Scenario generated with ${data.model || model}.`, 'success');
             state.sceneCooldownUntil = 0;
             startCooldown();
