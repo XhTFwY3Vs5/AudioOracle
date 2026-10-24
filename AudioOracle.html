@@ -47,6 +47,16 @@
             color: #444;
             text-align: center;
             min-height: 1.2em;
+            line-height: 1.3;
+        }
+        #result .primary { display: block; }
+        #result .meanings {
+            display: block;
+            font-size: 0.55em;
+            font-weight: 500;
+            color: #666;
+            margin-top: 6px;
+            letter-spacing: 0.02em;
         }
         #result .mute-indicator {
             font-size: 0.6em;
@@ -67,7 +77,6 @@
             gap: var(--spacing-small);
         }
 
-        /* Inline row for compact controls */
         .form-row {
             display: flex;
             gap: var(--spacing-medium);
@@ -82,6 +91,7 @@
             gap: 6px;
             font-weight: normal;
             cursor: pointer;
+            font-size: 0.95em;
         }
 
         input, textarea, select {
@@ -134,6 +144,9 @@
         }
         details.syntax-help ul { margin: 6px 0 0 0; padding-left: 20px; }
 
+        /* Mode-specific sections toggle via .hidden */
+        .hidden { display: none !important; }
+
         button {
             padding: 12px 20px;
             font-size: 1.1em;
@@ -154,9 +167,7 @@
             font-size: 0.85em;
             font-weight: normal;
         }
-        button.secondary:hover {
-            background: rgba(0, 123, 255, 0.08);
-        }
+        button.secondary:hover { background: rgba(0, 123, 255, 0.08); }
 
         #countdown {
             font-size: 1.5em;
@@ -165,7 +176,6 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* History panel */
         .history {
             width: 100%;
             border-top: 1px solid var(--color-border);
@@ -210,6 +220,19 @@
             color: var(--color-muted);
             font-style: italic;
         }
+
+        /* Small badge showing active mode */
+        .mode-badge {
+            display: inline-block;
+            font-size: 0.7em;
+            font-weight: 500;
+            color: var(--color-primary);
+            border: 1px solid var(--color-primary);
+            border-radius: 10px;
+            padding: 1px 8px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -222,6 +245,15 @@
 
         <form class="oracle-form" onsubmit="return false;">
 
+            <div class="form-group">
+                <label for="mode">Mode:</label>
+                <select id="mode">
+                    <option value="standard">Standard (phrases)</option>
+                    <option value="fate">Mythic Fate Check</option>
+                    <option value="meaning">Mythic Meaning Words</option>
+                </select>
+            </div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label for="interval">Delay (seconds):</label>
@@ -233,7 +265,8 @@
                 </div>
             </div>
 
-            <div class="form-group">
+            <!-- Standard-mode-only: phrase textarea -->
+            <div class="form-group" id="phrasesGroup">
                 <label for="phrases">Phrases (one per line):</label>
                 <textarea id="phrases" rows="10">no, and...
 no
@@ -254,6 +287,39 @@ yes, and...</textarea>
                 </details>
             </div>
 
+            <!-- Fate-mode-only: Odds + Chaos Factor -->
+            <div class="form-row hidden" id="fateGroup">
+                <div class="form-group">
+                    <label for="odds">Odds:</label>
+                    <select id="odds">
+                        <option value="Certain">Certain</option>
+                        <option value="Nearly Certain">Nearly Certain</option>
+                        <option value="Very Likely">Very Likely</option>
+                        <option value="Likely">Likely</option>
+                        <option value="50/50" selected>50/50</option>
+                        <option value="Unlikely">Unlikely</option>
+                        <option value="Very Unlikely">Very Unlikely</option>
+                        <option value="Nearly Impossible">Nearly Impossible</option>
+                        <option value="Impossible">Impossible</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="chaos">Chaos Factor:</label>
+                    <input id="chaos" type="number" min="1" max="9" value="5">
+                </div>
+            </div>
+
+            <!-- Meaning-words controls: visible in meaning mode OR as append toggle in other modes -->
+            <div class="form-group">
+                <label class="checkbox-label" id="appendMeaningLabel">
+                    <input id="appendMeaning" type="checkbox"> Append meaning words
+                </label>
+                <label class="checkbox-label" id="rollDescriptorsLabel">
+                    <input id="rollDescriptors" type="checkbox"> Include descriptors (2 more words)
+                </label>
+            </div>
+
+            <!-- Voice controls -->
             <div class="form-group">
                 <label for="voice">Voice:</label>
                 <select id="voice"><option value="">(default)</option></select>
@@ -272,6 +338,7 @@ yes, and...</textarea>
 
             <div class="form-row">
                 <label class="checkbox-label"><input id="mute" type="checkbox"> Mute audio (display still updates)</label>
+                <label class="checkbox-label"><input id="speakDetails" type="checkbox"> Speak roll math (Fate)</label>
             </div>
 
             <button id="toggleBtn" onclick="toggleRolling()">Start Rolling</button>
@@ -298,28 +365,130 @@ yes, and...</textarea>
      * Constants & element cache
      * ============================================================ */
 
-    const STORAGE_KEY = 'audioOracle.v2';
+    const STORAGE_KEY = 'audioOracle.v2';   // bump to v3? No — v2 schema extended in place.
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
 
     const $ = id => document.getElementById(id);
     const els = {
         result:      $('result'),
+        mode:        $('mode'),
         interval:    $('interval'),
         phrases:     $('phrases'),
+        phrasesGroup:$('phrasesGroup'),
         hint:        $('phraseHint'),
         timer:       $('timer'),
+        fateGroup:   $('fateGroup'),
+        odds:        $('odds'),
+        chaos:       $('chaos'),
+        appendMeaning:      $('appendMeaning'),
+        appendMeaningLabel: $('appendMeaningLabel'),
+        rollDescriptors:    $('rollDescriptors'),
+        rollDescriptorsLabel: $('rollDescriptorsLabel'),
         voice:       $('voice'),
         rate:        $('rate'),
         rateVal:     $('rateVal'),
         pitch:       $('pitch'),
         pitchVal:    $('pitchVal'),
         mute:        $('mute'),
+        speakDetails:$('speakDetails'),
         countdown:   $('countdown'),
         toggleBtn:   $('toggleBtn'),
         historyList: $('historyList'),
         historyEmpty:$('historyEmpty'),
     };
+
+    /* ============================================================
+     * Mythic tables — transcribed from MythicGME2e-charts.pdf
+     * ============================================================ */
+
+    // p.10, Fate Check Modifiers (Odds column)
+    const ODDS_MODIFIERS = {
+        "Certain":          +5,
+        "Nearly Certain":   +4,
+        "Very Likely":      +2,
+        "Likely":           +1,
+        "50/50":             0,
+        "Unlikely":         -1,
+        "Very Unlikely":    -2,
+        "Nearly Impossible":-4,
+        "Impossible":       -5,
+    };
+
+    // p.10, Fate Check Modifiers (Chaos Factor column)
+    const CHAOS_MODIFIERS = {
+        1: -5, 2: -4, 3: -2, 4: -1, 5: 0, 6: +1, 7: +2, 8: +4, 9: +5,
+    };
+
+    // p.10, Fate Check Answers (open-ended upper/lower bands)
+    function fateAnswer(modifiedTotal) {
+        if (modifiedTotal >= 18) return "Exceptional Yes";
+        if (modifiedTotal >= 11) return "Yes";
+        if (modifiedTotal <= 4)  return "Exceptional No";
+        return "No"; // 5–10
+    }
+
+    // p.14, ACTION 1 (100)
+    const ACTION_1 = [
+        "Abandon","Accompany","Activate","Agree","Ambush","Arrive","Assist","Attack","Attain","Bargain",
+        "Befriend","Bestow","Betray","Block","Break","Carry","Celebrate","Change","Close","Combine",
+        "Communicate","Conceal","Continue","Control","Create","Deceive","Decrease","Defend","Delay","Deny",
+        "Depart","Deposit","Destroy","Dispute","Disrupt","Distrust","Divide","Drop","Easy","Energize",
+        "Escape","Expose","Fail","Fight","Flee","Free","Guide","Harm","Heal","Hinder",
+        "Imitate","Imprison","Increase","Indulge","Inform","Inquire","Inspect","Invade","Leave","Lure",
+        "Misuse","Move","Neglect","Observe","Open","Oppose","Overthrow","Praise","Proceed","Protect",
+        "Punish","Pursue","Recruit","Refuse","Release","Relinquish","Repair","Repulse","Return","Reward",
+        "Ruin","Separate","Start","Stop","Strange","Struggle","Succeed","Support","Suppress","Take",
+        "Threaten","Transform","Trap","Travel","Triumph","Truce","Trust","Use","Usurp","Waste"
+    ];
+
+    // p.14, ACTION 2 (100)
+    const ACTION_2 = [
+        "Advantage","Adversity","Agreement","Animal","Attention","Balance","Battle","Benefits","Building","Burden",
+        "Bureaucracy","Business","Chaos","Comfort","Completion","Conflict","Cooperation","Danger","Defense","Depletion",
+        "Disadvantage","Distraction","Elements","Emotion","Enemy","Energy","Environment","Expectation","Exterior","Extravagance",
+        "Failure","Fame","Fear","Freedom","Friend","Goal","Group","Health","Hindrance","Home",
+        "Hope","Idea","Illness","Illusion","Individual","Information","Innocent","Intellect","Interior","Investment",
+        "Leadership","Legal","Location","Military","Misfortune","Mundane","Nature","Needs","News","Normal",
+        "Object","Obscurity","Official","Opposition","Outside","Pain","Path","Peace","People","Personal",
+        "Physical","Plot","Portal","Possessions","Poverty","Power","Prison","Project","Protection","Reassurance",
+        "Representative","Riches","Safety","Strength","Success","Suffering","Surprise","Tactic","Technology","Tension",
+        "Time","Trial","Value","Vehicle","Victory","Vulnerability","Weapon","Weather","Work","Wound"
+    ];
+
+    // p.15, DESCRIPTOR 1 (100) — entry 63 "Loyalty" preserved verbatim from the book
+    const DESCRIPTOR_1 = [
+        "Adventurously","Aggressively","Anxiously","Awkwardly","Beautifully","Bleakly","Boldly","Bravely","Busily","Calmly",
+        "Carefully","Carelessly","Cautiously","Ceaselessly","Cheerfully","Combatively","Coolly","Crazily","Curiously","Dangerously",
+        "Defiantly","Deliberately","Delicately","Delightfully","Dimly","Efficiently","Emotionally","Energetically","Enormously","Enthusiastically",
+        "Excitedly","Fearfully","Ferociously","Fiercely","Foolishly","Fortunately","Frantically","Freely","Frighteningly","Fully",
+        "Generously","Gently","Gladly","Gracefully","Gratefully","Happily","Hastily","Healthily","Helpfully","Helplessly",
+        "Hopelessly","Innocently","Intensely","Interestingly","Irritatingly","Joyfully","Kindly","Lazily","Lightly","Loosely",
+        "Loudly","Lovingly","Loyalty","Majestically","Meaningfully","Mechanically","Mildly","Miserably","Mockingly","Mysteriously",
+        "Naturally","Neatly","Nicely","Oddly","Offensively","Officially","Partially","Passively","Peacefully","Perfectly",
+        "Playfully","Politely","Positively","Powerfully","Quaintly","Quarrelsomely","Quietly","Roughly","Rudely","Ruthlessly",
+        "Slowly","Softly","Strangely","Swiftly","Threateningly","Timidly","Very","Violently","Wildly","Yieldingly"
+    ];
+
+    // p.15, DESCRIPTOR 2 (100)
+    const DESCRIPTOR_2 = [
+        "Abnormal","Amusing","Artificial","Average","Beautiful","Bizarre","Boring","Bright","Broken","Clean",
+        "Cold","Colorful","Colorless","Comforting","Creepy","Cute","Damaged","Dark","Defeated","Dirty",
+        "Disagreeable","Dry","Dull","Empty","Enormous","Extraordinary","Extravagant","Faded","Familiar","Fancy",
+        "Feeble","Festive","Flawless","Forlorn","Fragile","Fragrant","Fresh","Full","Glorious","Graceful",
+        "Hard","Harsh","Healthy","Heavy","Historical","Horrible","Important","Interesting","Juvenile","Lacking",
+        "Large","Lavish","Lean","Less","Lethal","Lively","Lonely","Lovely","Magnificent","Mature",
+        "Messy","Mighty","Military","Modern","Mundane","Mysterious","Natural","Normal","Odd","Old",
+        "Pale","Peaceful","Petite","Plain","Poor","Powerful","Protective","Quaint","Rare","Reassuring",
+        "Remarkable","Rotten","Rough","Ruined","Rustic","Scary","Shocking","Simple","Small","Smooth",
+        "Soft","Strong","Stylish","Unpleasant","Valuable","Vibrant","Warm","Watery","Weak","Young"
+    ];
+
+    // Sanity check — one-time in dev, cheap in prod
+    console.assert(ACTION_1.length === 100, 'ACTION_1 length mismatch');
+    console.assert(ACTION_2.length === 100, 'ACTION_2 length mismatch');
+    console.assert(DESCRIPTOR_1.length === 100, 'DESCRIPTOR_1 length mismatch');
+    console.assert(DESCRIPTOR_2.length === 100, 'DESCRIPTOR_2 length mismatch');
 
     /* ============================================================
      * State
@@ -332,18 +501,24 @@ yes, and...</textarea>
         countdownId:null,
         wakeLock:   null,
         // settings (persisted)
+        mode:       'standard',
         interval:   20,
         timer:      0,
         phrases:    DEFAULT_PHRASES,
+        odds:       '50/50',
+        chaos:      5,
+        appendMeaning: false,
+        rollDescriptors: false,
         voice:      '',
         rate:       1,
         pitch:      1,
         mute:       false,
-        history:    [],   // [{time, primary, modifiers[]}]
+        speakDetails: false,
+        history:    [],   // [{time, primary, modifiers[], meanings: {action:{a,b}, descriptor:{a,b}|null}}]
     };
 
     /* ============================================================
-     * Settings persistence (v2, with v1 migration)
+     * Settings persistence (v2 schema, extended in Phase B)
      * ============================================================ */
 
     function loadSettings() {
@@ -351,7 +526,6 @@ yes, and...</textarea>
         try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }
         catch (_) { raw = null; }
 
-        // Migrate from v1 keys if no v2 blob exists
         if (!raw || raw.v !== 2) {
             const v1 = {
                 interval: localStorage.getItem('interval'),
@@ -366,27 +540,38 @@ yes, and...</textarea>
             };
         }
 
-        // Apply with type guards
-        state.interval = numOr(raw.interval, 20);
-        state.timer    = numOr(raw.timer, 0);
-        state.phrases  = typeof raw.phrases === 'string' ? raw.phrases : DEFAULT_PHRASES;
-        state.voice    = typeof raw.voice   === 'string' ? raw.voice   : '';
-        state.rate     = clamp(numOr(raw.rate, 1), 0.7, 1.3);
-        state.pitch    = clamp(numOr(raw.pitch, 1), 0.8, 1.2);
-        state.mute     = !!raw.mute;
-        state.history  = Array.isArray(raw.history) ? raw.history.slice(0, HISTORY_LIMIT) : [];
+        state.mode       = ['standard','fate','meaning'].includes(raw.mode) ? raw.mode : 'standard';
+        state.interval   = numOr(raw.interval, 20);
+        state.timer      = numOr(raw.timer, 0);
+        state.phrases    = typeof raw.phrases === 'string' ? raw.phrases : DEFAULT_PHRASES;
+        state.odds       = Object.prototype.hasOwnProperty.call(ODDS_MODIFIERS, raw.odds) ? raw.odds : '50/50';
+        state.chaos      = clampInt(numOr(raw.chaos, 5), 1, 9);
+        state.appendMeaning = !!raw.appendMeaning;
+        state.rollDescriptors = !!raw.rollDescriptors;
+        state.voice      = typeof raw.voice   === 'string' ? raw.voice   : '';
+        state.rate       = clamp(numOr(raw.rate, 1), 0.7, 1.3);
+        state.pitch      = clamp(numOr(raw.pitch, 1), 0.8, 1.2);
+        state.mute       = !!raw.mute;
+        state.speakDetails = !!raw.speakDetails;
+        state.history    = Array.isArray(raw.history) ? raw.history.slice(0, HISTORY_LIMIT) : [];
     }
 
     function saveSettings() {
         const blob = {
             v: 2,
+            mode: state.mode,
             interval: state.interval,
             timer:    state.timer,
             phrases:  state.phrases,
+            odds:     state.odds,
+            chaos:    state.chaos,
+            appendMeaning: state.appendMeaning,
+            rollDescriptors: state.rollDescriptors,
             voice:    state.voice,
             rate:     state.rate,
             pitch:    state.pitch,
             mute:     state.mute,
+            speakDetails: state.speakDetails,
             history:  state.history,
         };
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(blob)); }
@@ -398,28 +583,42 @@ yes, and...</textarea>
         return Number.isFinite(n) ? n : fallback;
     }
     function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+    function clampInt(n, lo, hi) { return Math.round(clamp(n, lo, hi)); }
 
     /* ============================================================
-     * Phrase parsing & weighted pick
+     * Dice helpers
      * ============================================================ */
 
-    // Returns [{weight, text, raw}] — skips weight<=0 or empty text.
-    // Malformed lines fall back to weight 1 with the full line as text.
+    const d = n => Math.floor(Math.random() * n) + 1;
+    const d100 = () => d(100);
+
+    function rollTable(list) {
+        return list[d100() - 1];
+    }
+
+    function rollMeaningPair(pair = 'action') {
+        const a = rollTable(pair === 'action' ? ACTION_1 : DESCRIPTOR_1);
+        const b = rollTable(pair === 'action' ? ACTION_2 : DESCRIPTOR_2);
+        return { a, b };
+    }
+
+    /* ============================================================
+     * Phrase parsing & weighted pick (unchanged from Phase A)
+     * ============================================================ */
+
     function parsePhrases(raw) {
         if (typeof raw !== 'string') return [];
         const out = [];
         for (const line of raw.split('\n')) {
             const trimmed = line.trim();
-            if (!trimmed) continue;                    // skip blank lines silently
-
+            if (!trimmed) continue;
             const m = trimmed.match(/^\s*\[(-?\d+(?:\.\d+)?)\]\s*(.*)$/);
             if (m) {
                 const weight = parseFloat(m[1]);
                 const text   = m[2].trim();
-                if (text === '' || weight <= 0) continue;   // disabled / empty
+                if (text === '' || weight <= 0) continue;
                 out.push({ weight, text, raw: trimmed });
             } else {
-                // No weight prefix — either plain text OR malformed like "[abc] foo"
                 out.push({ weight: 1, text: trimmed, raw: trimmed });
             }
         }
@@ -435,7 +634,7 @@ yes, and...</textarea>
             r -= p.weight;
             if (r < 0) return p;
         }
-        return phrases[phrases.length - 1]; // float safety
+        return phrases[phrases.length - 1];
     }
 
     /* ============================================================
@@ -447,7 +646,6 @@ yes, and...</textarea>
     function refreshVoices() {
         if (!('speechSynthesis' in window)) return;
         cachedVoices = window.speechSynthesis.getVoices();
-        // Preserve current selection; rebuild options
         const current = state.voice;
         els.voice.innerHTML = '';
         const def = document.createElement('option');
@@ -460,7 +658,6 @@ yes, and...</textarea>
             opt.textContent = `${v.name} (${v.lang})`;
             els.voice.appendChild(opt);
         });
-        // Restore selection if still valid
         if (cachedVoices.some(v => v.name === current)) {
             els.voice.value = current;
         } else {
@@ -472,7 +669,6 @@ yes, and...</textarea>
     function speak(text) {
         if (state.mute) return;
         if (!('speechSynthesis' in window)) return;
-        // Cancel previous utterance so rapid rolls don't queue up forever
         try { window.speechSynthesis.cancel(); } catch (_) {}
         const u = new SpeechSynthesisUtterance(text);
         if (state.voice) {
@@ -485,20 +681,98 @@ yes, and...</textarea>
     }
 
     /* ============================================================
-     * Roll pipeline
+     * Roll pipeline — dispatches on mode
      * ============================================================ */
 
-    // Returns {primary, modifiers[]} or null if no phrases.
+    // Returns a roll object:
+    //   { primary: string,
+    //     modifiers: string[],
+    //     meanings: { action: {a,b}|null, descriptor: {a,b}|null },
+    //     details: string|null }
+    // or null if nothing to roll.
     function doRoll() {
-        const phrases = parsePhrases(state.phrases);
-        const pick = weightedPick(phrases);
-        if (!pick) return null;
-        return { primary: pick.text, modifiers: [] };
+        const mode = state.mode;
+
+        let primary = null;
+        let details = null;
+
+        if (mode === 'standard') {
+            const phrases = parsePhrases(state.phrases);
+            const pick = weightedPick(phrases);
+            if (!pick) return null;
+            primary = pick.text;
+
+        } else if (mode === 'fate') {
+            const oddsMod  = ODDS_MODIFIERS[state.odds] ?? 0;
+            const chaosMod = CHAOS_MODIFIERS[state.chaos] ?? 0;
+            const raw = d(10) + d(10);
+            const total = raw + oddsMod + chaosMod;
+            primary = fateAnswer(total);
+            details = `rolled ${raw} ${fmtSigned(oddsMod)} odds ${fmtSigned(chaosMod)} chaos = ${total}`;
+
+        } else if (mode === 'meaning') {
+            // In meaning mode the "primary" is the action pair itself.
+            // The UI renders it as two lines; speech joins with periods.
+            const pair = rollMeaningPair('action');
+            primary = `${pair.a}. ${pair.b}`;
+        } else {
+            return null;
+        }
+
+        // Resolve meanings — automatic in meaning mode, opt-in elsewhere.
+        let meanings = { action: null, descriptor: null };
+        const wantMeaning = (mode === 'meaning') || state.appendMeaning;
+        if (wantMeaning) {
+            meanings.action = (mode === 'meaning')
+                ? parseMeaningFromPrimary(primary)
+                : rollMeaningPair('action');
+        }
+        // Descriptors only if user asked, and only when meanings are being shown.
+        if (wantMeaning && state.rollDescriptors) {
+            meanings.descriptor = rollMeaningPair('descriptor');
+        }
+
+        // In meaning mode, don't double up: the pair IS the primary.
+        // We'll suppress the meanings overlay for that mode in render/speak.
+        if (mode === 'meaning') {
+            // meanings.action already derived from primary; hide it to avoid duplication.
+            // But descriptors (if enabled) still show as an additional pair.
+            meanings.action = null;
+        }
+
+        return { primary, modifiers: [], meanings, details };
     }
 
+    function parseMeaningFromPrimary(primary) {
+        // primary is "WordA. WordB" for meaning mode
+        const parts = primary.split('. ').map(s => s.trim());
+        if (parts.length === 2) return { a: parts[0], b: parts[1] };
+        return null;
+    }
+
+    function fmtSigned(n) {
+        if (n === 0) return '±0';
+        return n > 0 ? `+${n}` : `${n}`;
+    }
+
+    /* ============================================================
+     * Formatting for speech & display
+     * ============================================================ */
+
     function formatForSpeech(roll) {
-        // Phase A: primary + modifiers, joined with periods for natural TTS pauses.
-        return [roll.primary, ...roll.modifiers].join('. ');
+        const parts = [roll.primary];
+        if (roll.meanings.action) {
+            parts.push(`${roll.meanings.action.a}. ${roll.meanings.action.b}`);
+        }
+        if (roll.meanings.descriptor) {
+            parts.push(`${roll.meanings.descriptor.a}. ${roll.meanings.descriptor.b}`);
+        }
+        if (state.speakDetails && roll.details) {
+            parts.push(roll.details);
+        }
+        // Join with periods to create natural TTS pauses.
+        // A leading space after punctuation is important for most TTS engines.
+        return parts.join('. ') + '.';
     }
 
     function renderRoll(roll) {
@@ -507,7 +781,22 @@ yes, and...</textarea>
             return;
         }
         const muteTag = state.mute ? ' <span class="mute-indicator">🔇</span>' : '';
-        els.result.innerHTML = escapeHtml(roll.primary) + muteTag;
+        let html = `<span class="primary">${escapeHtml(roll.primary)}</span>`;
+
+        // Compose meaning line(s) for display
+        const lines = [];
+        if (roll.meanings.action) {
+            lines.push(`${escapeHtml(roll.meanings.action.a)} · ${escapeHtml(roll.meanings.action.b)}`);
+        }
+        if (roll.meanings.descriptor) {
+            lines.push(`${escapeHtml(roll.meanings.descriptor.a)} · ${escapeHtml(roll.meanings.descriptor.b)}`);
+        }
+        if (lines.length) {
+            html += `<span class="meanings">${lines.join('<br>')}</span>`;
+        }
+
+        html += muteTag;
+        els.result.innerHTML = html;
     }
 
     function escapeHtml(s) {
@@ -515,6 +804,10 @@ yes, and...</textarea>
             '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
         }[c]));
     }
+
+    /* ============================================================
+     * History
+     * ============================================================ */
 
     function pushHistory(roll) {
         if (!roll) return;
@@ -525,6 +818,11 @@ yes, and...</textarea>
             time: `${hh}:${mm}`,
             primary: roll.primary,
             modifiers: roll.modifiers.slice(),
+            meanings: {
+                action: roll.meanings.action ? { ...roll.meanings.action } : null,
+                descriptor: roll.meanings.descriptor ? { ...roll.meanings.descriptor } : null,
+            },
+            details: roll.details || null,
         });
         if (state.history.length > HISTORY_LIMIT) state.history.length = HISTORY_LIMIT;
         renderHistory();
@@ -538,13 +836,28 @@ yes, and...</textarea>
             return;
         }
         els.historyEmpty.style.display = 'none';
-        state.history.forEach((h, i) => {
+        state.history.forEach((h) => {
             const li = document.createElement('li');
             li.title = 'Click to speak again';
+
+            // Build the full spoken string for replay
+            const replayParts = [h.primary];
+            if (h.meanings.action) replayParts.push(`${h.meanings.action.a}. ${h.meanings.action.b}`);
+            if (h.meanings.descriptor) replayParts.push(`${h.meanings.descriptor.a}. ${h.meanings.descriptor.b}`);
+            if (state.speakDetails && h.details) replayParts.push(h.details);
+            const replayText = replayParts.join('. ') + '.';
+
+            // Build the display value: primary + optional meaning hint
+            let val = escapeHtml(h.primary);
+            const m = [];
+            if (h.meanings.action) m.push(`${escapeHtml(h.meanings.action.a)}·${escapeHtml(h.meanings.action.b)}`);
+            if (h.meanings.descriptor) m.push(`${escapeHtml(h.meanings.descriptor.a)}·${escapeHtml(h.meanings.descriptor.b)}`);
+            if (m.length) val += ` <span style="color:#999">— ${m.join(' / ')}</span>`;
+
             li.innerHTML =
                 `<span class="ts">${escapeHtml(h.time)}</span>` +
-                `<span class="val">${escapeHtml(h.primary)}</span>`;
-            li.addEventListener('click', () => speak(h.primary));
+                `<span class="val">${val}</span>`;
+            li.addEventListener('click', () => speak(replayText));
             els.historyList.appendChild(li);
         });
     }
@@ -572,7 +885,6 @@ yes, and...</textarea>
             const anyWeighted = phrases.some(p => p.weight !== 1);
             let msg = `${phrases.length} phrase${phrases.length === 1 ? '' : 's'} · total weight ${round(total)}`;
             if (anyWeighted && total > 0) {
-                // Show the most-likely phrase's percentage as a quick sanity check
                 const top = phrases.reduce((a, b) => (a.weight >= b.weight ? a : b));
                 const pct = (top.weight / total * 100);
                 msg += ` · "${truncate(top.text, 20)}" ≈${round(pct)}%`;
@@ -581,11 +893,49 @@ yes, and...</textarea>
         }, 150);
     }
 
-    function round(n) {
-        return Math.round(n * 100) / 100;
-    }
-    function truncate(s, n) {
-        return s.length > n ? s.slice(0, n - 1) + '…' : s;
+    function round(n) { return Math.round(n * 100) / 100; }
+    function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+    /* ============================================================
+     * Mode-dependent UI visibility
+     * ============================================================ */
+
+    function syncModeVisibility() {
+        const mode = state.mode;
+
+        // Textarea + hint only in standard mode
+        els.phrasesGroup.classList.toggle('hidden', mode !== 'standard');
+        // Fate controls only in fate mode
+        els.fateGroup.classList.toggle('hidden', mode !== 'fate');
+
+        // "Append meaning words" makes sense in standard & fate, not in meaning mode
+        // (meaning mode already produces meanings).
+        const appendLabelVisible = (mode !== 'meaning');
+        els.appendMeaningLabel.classList.toggle('hidden', !appendLabelVisible);
+        // If meaning mode, force the checkbox visual state off (but don't mutate
+        // the saved preference — it's restored when leaving meaning mode).
+        if (mode === 'meaning') {
+            els.appendMeaning.checked = false;
+            els.appendMeaning.disabled = true;
+        } else {
+            els.appendMeaning.checked = state.appendMeaning;
+            els.appendMeaning.disabled = false;
+        }
+
+        // Descriptors toggle: visible whenever meanings can appear.
+        // In standard/fate, only useful if appendMeaning is on.
+        const descLabelVisible =
+            (mode === 'meaning') || (mode !== 'meaning' && state.appendMeaning);
+        els.rollDescriptorsLabel.classList.toggle('hidden', !descLabelVisible);
+        if (!descLabelVisible) {
+            els.rollDescriptors.checked = false;
+        } else {
+            els.rollDescriptors.checked = state.rollDescriptors;
+        }
+
+        // "Speak roll math" only meaningful in fate mode
+        const speakDetailsWrap = els.speakDetails.closest('label');
+        if (speakDetailsWrap) speakDetailsWrap.classList.toggle('hidden', mode !== 'fate');
     }
 
     /* ============================================================
@@ -610,7 +960,6 @@ yes, and...</textarea>
     }
 
     function startRolling() {
-        // Persist current form values into state before starting
         syncFormToState();
         saveSettings();
 
@@ -620,7 +969,6 @@ yes, and...</textarea>
         state.isRolling = true;
         els.toggleBtn.textContent = 'Stop Rolling';
 
-        // Immediate first roll
         oneTick();
 
         state.intervalId = setInterval(oneTick, delayMs);
@@ -678,25 +1026,37 @@ yes, and...</textarea>
      * ============================================================ */
 
     function syncFormToState() {
-        state.interval = Math.max(1, parseInt(els.interval.value, 10) || 20);
-        state.timer    = Math.max(0, parseInt(els.timer.value, 10) || 0);
-        state.phrases  = els.phrases.value;
-        state.voice    = els.voice.value;
-        state.rate     = clamp(parseFloat(els.rate.value) || 1, 0.7, 1.3);
-        state.pitch    = clamp(parseFloat(els.pitch.value) || 1, 0.8, 1.2);
-        state.mute     = els.mute.checked;
+        state.mode       = els.mode.value;
+        state.interval   = Math.max(1, parseInt(els.interval.value, 10) || 20);
+        state.timer      = Math.max(0, parseInt(els.timer.value, 10) || 0);
+        state.phrases    = els.phrases.value;
+        state.odds       = els.odds.value;
+        state.chaos      = clampInt(parseInt(els.chaos.value, 10) || 5, 1, 9);
+        state.appendMeaning = els.appendMeaning.checked && state.mode !== 'meaning';
+        state.rollDescriptors = els.rollDescriptors.checked;
+        state.voice      = els.voice.value;
+        state.rate       = clamp(parseFloat(els.rate.value) || 1, 0.7, 1.3);
+        state.pitch      = clamp(parseFloat(els.pitch.value) || 1, 0.8, 1.2);
+        state.mute       = els.mute.checked;
+        state.speakDetails = els.speakDetails.checked;
     }
 
     function stateToForm() {
-        els.interval.value = state.interval;
-        els.timer.value    = state.timer;
-        els.phrases.value  = state.phrases;
-        els.rate.value     = state.rate;
-        els.pitch.value    = state.pitch;
-        els.mute.checked   = state.mute;
+        els.mode.value    = state.mode;
+        els.interval.value= state.interval;
+        els.timer.value   = state.timer;
+        els.phrases.value = state.phrases;
+        els.odds.value    = state.odds;
+        els.chaos.value   = state.chaos;
+        els.appendMeaning.checked = state.appendMeaning;
+        els.rollDescriptors.checked = state.rollDescriptors;
+        els.rate.value    = state.rate;
+        els.pitch.value   = state.pitch;
+        els.mute.checked  = state.mute;
+        els.speakDetails.checked = state.speakDetails;
         els.rateVal.textContent  = Number(state.rate).toFixed(2);
         els.pitchVal.textContent = Number(state.pitch).toFixed(2);
-        // Voice selection is restored inside refreshVoices()
+        syncModeVisibility();
     }
 
     /* ============================================================
@@ -704,16 +1064,31 @@ yes, and...</textarea>
      * ============================================================ */
 
     function wireEvents() {
-        // Persist settings on any change (debounced for textarea)
         let saveDebounce = null;
         const scheduleSave = () => {
             clearTimeout(saveDebounce);
             saveDebounce = setTimeout(() => { syncFormToState(); saveSettings(); }, 300);
         };
 
-        [els.interval, els.timer, els.voice, els.rate, els.pitch, els.mute].forEach(el => {
+        // Mode change: swap visibility, then save
+        els.mode.addEventListener('change', () => {
+            state.mode = els.mode.value;
+            syncModeVisibility();
+            scheduleSave();
+        });
+
+        // Append-meaning toggle affects descriptor visibility
+        els.appendMeaning.addEventListener('change', () => {
+            state.appendMeaning = els.appendMeaning.checked;
+            syncModeVisibility();
+            scheduleSave();
+        });
+
+        [els.interval, els.timer, els.voice, els.rate, els.pitch,
+         els.mute, els.odds, els.chaos, els.speakDetails, els.rollDescriptors].forEach(el => {
             el.addEventListener('change', scheduleSave);
         });
+
         els.rate.addEventListener('input', () => {
             els.rateVal.textContent = Number(els.rate.value).toFixed(2);
             scheduleSave();
@@ -727,20 +1102,26 @@ yes, and...</textarea>
             scheduleSave();
         });
 
-        // Voice change — speak a short preview (skipped when muted)
         els.voice.addEventListener('change', () => {
             state.voice = els.voice.value;
             speak('Voice set.');
         });
 
-        // Mute toggle — re-render current result so the 🔇 tag appears/disappears
         els.mute.addEventListener('change', () => {
             state.mute = els.mute.checked;
-            // Re-render the last primary if we have one
+            // Re-render last result so the mute tag appears/disappears
             const last = state.history[0];
             if (last) {
-                els.result.innerHTML = escapeHtml(last.primary) +
-                    (state.mute ? ' <span class="mute-indicator">🔇</span>' : '');
+                const fakeRoll = {
+                    primary: last.primary,
+                    modifiers: [],
+                    meanings: {
+                        action: last.meanings?.action || null,
+                        descriptor: last.meanings?.descriptor || null,
+                    },
+                    details: last.details || null,
+                };
+                renderRoll(fakeRoll);
             } else {
                 renderRoll(null);
             }
@@ -758,23 +1139,30 @@ yes, and...</textarea>
         renderHistory();
         wireEvents();
 
-        // Voices may not be ready immediately (Chrome populates them async)
         if ('speechSynthesis' in window) {
             refreshVoices();
             window.speechSynthesis.addEventListener('voiceschanged', refreshVoices);
         }
 
-        // Redisplay the most recent roll if any (nice touch after reload)
+        // Restore most recent roll display
         if (state.history.length) {
             const last = state.history[0];
-            els.result.innerHTML = escapeHtml(last.primary) +
-                (state.mute ? ' <span class="mute-indicator">🔇</span>' : '');
+            const fakeRoll = {
+                primary: last.primary,
+                modifiers: [],
+                meanings: {
+                    action: last.meanings?.action || null,
+                    descriptor: last.meanings?.descriptor || null,
+                },
+                details: last.details || null,
+            };
+            renderRoll(fakeRoll);
         }
     }
 
     document.addEventListener('DOMContentLoaded', init);
 
-    // Expose for inline onclick handlers
+    // Expose for inline handlers
     window.toggleRolling = toggleRolling;
     window.clearHistory  = clearHistory;
     </script>
