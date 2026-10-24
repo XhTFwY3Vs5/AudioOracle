@@ -1214,7 +1214,7 @@ yes, and...</textarea>
         const model = manual || els.sceneModel.value;
         const seeds = els.sceneSeeds.value.trim();
 
-        const systemPrompt = 'You are a TTRPG scene generator for a solo player lying in bed. Generate a concise opening scenario using ONLY bullet points that inspires a roleplay session. Include a hook or immediate situation. Each line must start with "- " or "• ". Do not ask questions. Do not use ANY markdown: no bold, no italics, no headers, no numbered lists, no formatting. Just plain text bullet points. Write in second person ("You...").';
+        const systemPrompt = 'You are a TTRPG scene generator for a solo player. Generate a concise opening scenario using ONLY bullet points that inspires a roleplay session. Include a hook or immediate situation. Each line must start with "- " or "• ". Do not ask questions. Do not use ANY markdown: no bold, no italics, no headers, no numbered lists, no formatting. Just plain text bullet points. Write in second person ("You...").';
         const userPrompt = seeds
             ? `Seeds/ideas to incorporate: ${seeds}\n\nGenerate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.`
             : 'Generate an opening scenario using ONLY bullet points (starting with "- " or "• "). Do not use any markdown formatting.';
