@@ -2,6 +2,24 @@
 
 All notable changes to Audio Oracle.
 
+## [1.7] — Readable at a Glance
+
+### Added
+- **Sticky roll stage** — the current result and stop-timer countdown now stay pinned to the top of the screen while you scroll, so starting a roll and reading it no longer requires scrolling back up.
+- **Dark mode** — the interface follows your system light/dark appearance, including panels, inputs, buttons, and the browser theme color. Better for bedtime sessions and low-light use.
+- **Screen reader announcements** — each new roll, scene, and status message is announced via live regions.
+
+### Changed
+- **Larger tap targets** — history entries, secondary buttons, checkboxes, and the scene clear button are now comfortably tappable on phones.
+- **History entries wrap** — long results now show up to two lines instead of being cut off with an ellipsis.
+- **Safe-area padding** — content and the sticky stage respect notches and the iOS home indicator.
+- **Muted text contrast** — hints, timestamps, and secondary labels are darker and easier to read.
+
+### Fixed
+- **Focus visibility** — keyboard focus is now clearly outlined on all controls.
+- **Heading structure** — added a screen-reader-only page heading so the document outline is meaningful.
+- **Clear scene button** — now has an accessible name instead of a bare “×”.
+
 ## [1.6] — Tome Scene Seeds
 
 ### Added

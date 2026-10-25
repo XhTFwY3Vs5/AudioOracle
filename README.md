@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.6**
+**Version: 1.7**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -11,6 +11,9 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
   - **Mythic Fate** — rolls the Mythic Game Master Emulator 2e Fate Check (2d10 + odds modifier + chaos modifier).
   - **Mythic Meaning** — rolls Action word pairs (and optionally Descriptor pairs) for inspiration.
 - **Scene Generator** — generate TTRPG scenarios via OpenRouter API, with a fully editable prompt.
+- **Always-visible roll stage** — the current result and stop-timer countdown stay pinned to the top of the screen while you scroll through settings or history.
+- **Light and dark themes** — follows your system appearance automatically for comfortable bedtime use.
+- **Touch-friendly controls** — large tap targets for history entries and buttons, plus safe-area padding for notched phones.
 - **Tome of Adventure Design seeds** — roll concrete scene seeds (place, who, mission, hook, complication, flavor) from 30 curated *Tome of Adventure Design* tables. Includes a local **Sketch (no API)** mode that builds a bullet scenario without any network call.
 - **Weighted phrases** — `[3] yes` makes "yes" three times as likely. Fractions and `[0]` (disabled) supported. Fully backward compatible with unweighted lists.
 - **Append meaning words** — in Standard or Fate mode, add a Mythic Action pair to every roll.
@@ -32,6 +35,8 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 4. Set Delay (seconds) and optional Stop timer (minutes).
 5. Press **Start Rolling**, or hit `Space`.
 6. Press **Stop Rolling** or `Space` again to stop.
+
+The current result and any stop-timer countdown remain pinned at the top while you scroll, so you can adjust settings or review history without losing the roll. The interface follows your system light/dark appearance. Screen readers announce each new roll.
 
 ### Weighted phrase syntax
 
