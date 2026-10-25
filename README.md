@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.7**
+**Version: 1.8**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -19,10 +19,11 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 - **Append meaning words** — in Standard or Fate mode, add a Mythic Action pair to every roll.
 - **Roll history** — last 10 results, timestamped. Click to re-speak.
 - **Voice controls** — pick a voice, adjust rate and pitch. Mute while keeping the display live.
+- **Dim screen** — when enabled, a dark overlay dims the interface for low-light sessions.
 - **Keyboard shortcuts** — `Space` start/stop, `R` roll once
 - **Customizable interval and optional timer.**
 - **Screen wake lock** — keeps the screen on during sessions, and re-acquires after tab switches.
-- **Settings persistence** — phrases, mode, odds, chaos, voice, rate, pitch, mute, history, and more are saved locally.
+- **Settings persistence** — phrases, mode, odds, chaos, voice, rate, pitch, mute, dim screen, history, and more are saved locally.
 
 ## How to Use
 
@@ -37,6 +38,8 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 6. Press **Stop Rolling** or `Space` again to stop.
 
 The current result and any stop-timer countdown remain pinned at the top while you scroll, so you can adjust settings or review history without losing the roll. The interface follows your system light/dark appearance. Screen readers announce each new roll.
+
+For quiet or low-light sessions, tick **Mute audio** to silence speech while the display keeps updating, and **Dim screen** to overlay a dark dimmer on the interface. Both settings are remembered between visits.
 
 ### Weighted phrase syntax
 

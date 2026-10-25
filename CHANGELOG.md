@@ -2,6 +2,11 @@
 
 All notable changes to Audio Oracle.
 
+## [1.8] — Focused Sessions
+
+### Added
+- **Dim screen toggle** — when enabled, a dark overlay dims the interface (55% opacity) to reduce eye strain during sessions in low-light environments.
+
 ## [1.7] — Readable at a Glance
 
 ### Added

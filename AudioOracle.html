@@ -286,6 +286,14 @@
         }
 
         .hidden { display: none !important; }
+        /* Dimmer overlay: fixed, click-through, above all content. */
+        .dimmed {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 9999;
+            pointer-events: none;
+        }
 
         button {
             padding: 12px 20px;
@@ -486,6 +494,8 @@
 </head>
 <body>
 
+    <div id="dim-overlay" class="dimmed hidden" aria-hidden="true"></div>
+
     <main class="container">
 
         <h1 class="sr-only">Audio Oracle</h1>
@@ -676,6 +686,7 @@ yes, and...</textarea>
 
             <div class="form-row">
                 <label class="checkbox-label"><input id="mute" type="checkbox"> Mute audio (display still updates)</label>
+                <label class="checkbox-label"><input id="dimScreen" type="checkbox"> Dim screen (reduce brightness)</label>
             </div>
 
             <button id="toggleBtn" onclick="toggleRolling()">Start Rolling</button>
@@ -694,14 +705,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.7</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.8</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.7';
+    const VERSION = '1.8';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -780,6 +791,7 @@ yes, and...</textarea>
         pitch:       $('pitch'),
         pitchVal:    $('pitchVal'),
         mute:        $('mute'),
+        dimScreen:   $('dimScreen'),
         countdown:   $('countdown'),
         toggleBtn:   $('toggleBtn'),
         historyList: $('historyList'),
@@ -908,6 +920,7 @@ yes, and...</textarea>
         rate:       1,
         pitch:      1,
         mute:       false,
+        dimScreen:  false,
         history:    [],
         // Scene generator
         sceneApiKey: '',
@@ -956,6 +969,7 @@ yes, and...</textarea>
         state.pitch      = clamp(numOr(raw.pitch, 1), 0.8, 1.2);
         state.mute       = !!raw.mute;
         state.history    = Array.isArray(raw.history) ? raw.history.slice(0, HISTORY_LIMIT) : [];
+        state.dimScreen  = !!raw.dimScreen;
         state.sceneApiKey = typeof raw.sceneApiKey === 'string' ? raw.sceneApiKey : '';
         state.sceneModel  = typeof raw.sceneModel === 'string' ? raw.sceneModel : 'openrouter/free';
         state.sceneModelManual = typeof raw.sceneModelManual === 'string' ? raw.sceneModelManual : '';
@@ -985,6 +999,7 @@ yes, and...</textarea>
             rate:     state.rate,
             pitch:    state.pitch,
             mute:     state.mute,
+            dimScreen: state.dimScreen,
             history:  state.history,
             sceneApiKey: state.sceneApiKey,
             sceneModel:  state.sceneModel,
@@ -1374,6 +1389,7 @@ yes, and...</textarea>
         state.rate       = clamp(parseFloat(els.rate.value) || 1, 0.7, 1.3);
         state.pitch      = clamp(parseFloat(els.pitch.value) || 1, 0.8, 1.2);
         state.mute       = els.mute.checked;
+        state.dimScreen  = els.dimScreen.checked;
         // Scene generator fields
         state.sceneApiKey = els.sceneApiKey.value;
         state.sceneModel  = els.sceneModel.value;
@@ -1399,6 +1415,7 @@ yes, and...</textarea>
         els.rate.value    = state.rate;
         els.pitch.value   = state.pitch;
         els.mute.checked  = state.mute;
+        els.dimScreen.checked = state.dimScreen;
         els.rateVal.textContent  = Number(state.rate).toFixed(2);
         els.pitchVal.textContent = Number(state.pitch).toFixed(2);
         els.sceneApiKey.value = state.sceneApiKey;
@@ -1410,6 +1427,13 @@ yes, and...</textarea>
         });
         els.sceneFullPrompt.value = state.scenePrompt || DEFAULT_SCENE_PROMPT;
         syncModeVisibility();
+        updateDimOverlay();
+    }
+
+    function updateDimOverlay() {
+        const overlay = document.getElementById('dim-overlay');
+        if (!overlay) return;
+        overlay.classList.toggle('hidden', !state.dimScreen);
     }
 
     /* ============================================================
@@ -1877,6 +1901,12 @@ yes, and...</textarea>
             } else {
                 renderRoll(null);
             }
+        });
+
+        els.dimScreen.addEventListener('change', () => {
+            state.dimScreen = els.dimScreen.checked;
+            updateDimOverlay();
+            scheduleSave();
         });
 
         document.addEventListener('keydown', (e) => {
