@@ -2,6 +2,18 @@
 
 All notable changes to Audio Oracle.
 
+## [1.6] — Tome Scene Seeds
+
+### Added
+- **Tome of Adventure Design seeds** — a collapsible seed roller in the Scene Generator draws from 30 curated *Tome of Adventure Design* tables. Categories: Adventure type, Place, Who, Mission, Hook, Complication, and Flavor. Selected categories are saved locally.
+- **Roll Seeds** — replaces the Seeds field with labelled seed lines (e.g. `Place: …`, `Who: …`, `Mission: …`) that can be edited before generating.
+- **Sketch (no API)** — composes a local bullet scenario from the current seeds, or rolls fresh ones, without calling OpenRouter. The table tools therefore work offline.
+- **Embedded table data** — the curated subset (30 tables, ~2,300 rows) ships inside `AudioOracle.html`; nothing is fetched at runtime.
+- **Build script** — `tools/build_tome_tables.py` regenerates the embedded block from tome_parser's per-table JSON and cleans table references and noise.
+
+### Changed
+- **Scene Generator** — table seeds are optional and opt-in; the existing free-text seeds and editable prompt are unchanged.
+
 ## [1.5.3] — Simplified Default Prompt
 
 ### Changed
