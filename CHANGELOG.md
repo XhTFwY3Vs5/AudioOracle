@@ -2,6 +2,11 @@
 
 All notable changes to Audio Oracle.
 
+## [1.12] — Model Selection Sync
+
+### Changed
+- **Model selection** — choosing a model from the Model drop-down now copies that model ID into the manual model entry, overwriting any existing text. The selected ID is visible and editable without retyping it.
+
 ## [1.11] — Quick Clear
 
 ### Added

@@ -903,14 +903,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.11</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.12</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.11';
+    const VERSION = '1.12';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -2471,7 +2471,13 @@ yes, and...</textarea>
             els.sceneSeeds.focus();
         });
         els.sceneApiKey.addEventListener('change', scheduleSave);
-        els.sceneModel.addEventListener('change', scheduleSave);
+        els.sceneModel.addEventListener('change', () => {
+            els.sceneModelManual.value = els.sceneModel.value;
+            state.sceneModel = els.sceneModel.value;
+            state.sceneModelManual = els.sceneModelManual.value;
+            syncSceneClearButtons();
+            scheduleSave();
+        });
         els.sceneModelManual.addEventListener('change', scheduleSave);
         els.sceneSeeds.addEventListener('change', scheduleSave);
         els.sceneModelManual.addEventListener('input', syncSceneClearButtons);
