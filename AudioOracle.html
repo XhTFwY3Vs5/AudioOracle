@@ -269,6 +269,39 @@
         }
         textarea#scene-seeds { min-height: 60px; font-family: inherit; font-size: 0.95em; }
 
+        .field-with-clear { position: relative; }
+        .field-with-clear > input,
+        .field-with-clear > textarea { padding-right: 44px; }
+        .field-clear {
+            position: absolute;
+            top: 50%;
+            right: 4px;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            min-height: 0;
+            padding: 0;
+            color: var(--color-muted);
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.25em;
+            font-weight: 400;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .field-with-clear-textarea .field-clear {
+            top: 8px;
+            transform: none;
+        }
+        .field-clear:hover {
+            color: var(--color-danger);
+            background: var(--color-hover);
+        }
+
         .recent-models {
             margin-top: 2px;
         }
@@ -685,12 +718,18 @@
                     <summary class="recent-models-summary">Recently used models <span id="recent-models-count" class="recent-models-count"></span></summary>
                     <ul id="recent-models-list" class="recent-models-list"></ul>
                 </details>
-                <input id="scene-model-manual" type="text" placeholder="Or type a model ID manually (e.g. meta-llama/llama-3.1-8b-instruct:free)" style="margin-top: 4px;">
+                <div class="field-with-clear" style="margin-top: 4px;">
+                    <input id="scene-model-manual" type="text" placeholder="Or type a model ID manually (e.g. meta-llama/llama-3.1-8b-instruct:free)">
+                    <button type="button" class="field-clear hidden" id="scene-model-manual-clear" title="Clear manual model entry" aria-label="Clear manual model entry">×</button>
+                </div>
             </div>
 
             <div class="form-group">
                 <label for="scene-seeds">Optional seeds (one per line, or free text):</label>
-                <textarea id="scene-seeds" rows="3" placeholder="e.g. dark forest, a stranger with a letter, cyberpunk alley..."></textarea>
+                <div class="field-with-clear field-with-clear-textarea">
+                    <textarea id="scene-seeds" rows="3" placeholder="e.g. dark forest, a stranger with a letter, cyberpunk alley..."></textarea>
+                    <button type="button" class="field-clear hidden" id="scene-seeds-clear" title="Clear seeds" aria-label="Clear seeds">×</button>
+                </div>
             </div>
 
             <details class="tome-seeds" style="margin-top: 8px;">
@@ -864,14 +903,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.10.1</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.11</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.10.1';
+    const VERSION = '1.11';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -969,10 +1008,12 @@ yes, and...</textarea>
         sceneKeyToggle: $('scene-key-toggle'),
         sceneModel:     $('scene-model'),
         sceneModelManual: $('scene-model-manual'),
+        sceneModelManualClear: $('scene-model-manual-clear'),
         recentModels:   $('recent-models'),
         recentModelsCount: $('recent-models-count'),
         recentModelsList: $('recent-models-list'),
         sceneSeeds:     $('scene-seeds'),
+        sceneSeedsClear: $('scene-seeds-clear'),
         tomeRollSeeds:  $('tome-roll-seeds'),
         tomeSketch:     $('tome-sketch'),
         sceneFullPrompt: $('scene-full-prompt'),
@@ -1612,6 +1653,7 @@ yes, and...</textarea>
         els.sceneFullPrompt.value = state.scenePrompt || DEFAULT_SCENE_PROMPT;
         renderModelOptions();
         renderRecentModels();
+        syncSceneClearButtons();
         syncModeVisibility();
         updateDimOverlay();
     }
@@ -1620,6 +1662,11 @@ yes, and...</textarea>
         const overlay = document.getElementById('dim-overlay');
         if (!overlay) return;
         overlay.classList.toggle('hidden', !state.dimScreen);
+    }
+
+    function syncSceneClearButtons() {
+        els.sceneModelManualClear.classList.toggle('hidden', !els.sceneModelManual.value);
+        els.sceneSeedsClear.classList.toggle('hidden', !els.sceneSeeds.value);
     }
 
     /* ============================================================
@@ -1788,6 +1835,7 @@ yes, and...</textarea>
         }
         els.sceneSeeds.value = lines.join('\n');
         state.sceneSeeds = els.sceneSeeds.value;
+        syncSceneClearButtons();
         saveSettings();
         setSceneStatus(`Rolled ${lines.length} seed${lines.length === 1 ? '' : 's'}. Review them, then Generate.`, 'success');
     }
@@ -1832,6 +1880,7 @@ yes, and...</textarea>
             seeds = rollTomeSeeds(categories).join('\n');
             els.sceneSeeds.value = seeds;
             state.sceneSeeds = seeds;
+            syncSceneClearButtons();
             saveSettings();
         }
         if (!seeds) {
@@ -2414,10 +2463,26 @@ yes, and...</textarea>
             cb.addEventListener('change', scheduleSave);
         });
 
+        els.sceneSeedsClear.addEventListener('click', () => {
+            els.sceneSeeds.value = '';
+            state.sceneSeeds = '';
+            syncSceneClearButtons();
+            saveSettings();
+            els.sceneSeeds.focus();
+        });
         els.sceneApiKey.addEventListener('change', scheduleSave);
         els.sceneModel.addEventListener('change', scheduleSave);
         els.sceneModelManual.addEventListener('change', scheduleSave);
         els.sceneSeeds.addEventListener('change', scheduleSave);
+        els.sceneModelManual.addEventListener('input', syncSceneClearButtons);
+        els.sceneSeeds.addEventListener('input', syncSceneClearButtons);
+        els.sceneModelManualClear.addEventListener('click', () => {
+            els.sceneModelManual.value = '';
+            state.sceneModelManual = '';
+            syncSceneClearButtons();
+            saveSettings();
+            els.sceneModelManual.focus();
+        });
         els.sceneFullPrompt.addEventListener('change', scheduleSave);
         els.scenePromptReset.addEventListener('click', () => {
             els.sceneFullPrompt.value = DEFAULT_SCENE_PROMPT;

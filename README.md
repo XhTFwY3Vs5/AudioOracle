@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.10.1**
+**Version: 1.11**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -13,6 +13,7 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 - **Scene Generator** — generate TTRPG scenarios via OpenRouter API, with a fully editable prompt.
 - **Scene reader card** — generated scenes appear inline below the generator with their timestamp, model, and generation time. Copy the text, download it as a timestamped `.txt`, or clear it; the last scene is saved locally.
 - **Recent models** — models that successfully generate a scene are remembered in a cookie (up to eight) and added to the Model drop-down under **Recently used**, including after **Fetch Models**. The collapsible chip list shows a count; remove one with the **×** button on its recent-model chip.
+- **Quick clear** — **×** buttons inside the Seeds field and manual model input clear them in one click; each button appears only when its field has content.
 - **Always-visible roll stage** — the current result and stop-timer countdown stay pinned to the top of the screen while you scroll through settings or history.
 - **Light and dark themes** — follows your system appearance automatically for comfortable bedtime use.
 - **Touch-friendly controls** — large tap targets for history entries and buttons, plus safe-area padding for notched phones.
@@ -56,6 +57,7 @@ For quiet or low-light sessions, tick **Mute audio** to silence speech while the
 - **API Key** — enter your OpenRouter API key (password-protected).
 - **Model** — select a model or type one manually (e.g. `meta-llama/llama-3.1-8b-instruct:free`).
 - **Seeds** — optional seeds or ideas (one per line) to incorporate into the scenario.
+- **Clear fields** — the Seeds field and manual Model input show a **×** button when they contain text; click it to clear the field and save the change.
 - **Generate Scenario** — click to generate a bullet-point TTRPG opening scenario using OpenRouter models.
 - **Fetch Models** — load a list of free models from OpenRouter.
 - **OpenRouter** — requires an OpenRouter account (free tier has many free models available).

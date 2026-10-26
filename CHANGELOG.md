@@ -2,6 +2,15 @@
 
 All notable changes to Audio Oracle.
 
+## [1.11] — Quick Clear
+
+### Added
+- **Clear seeds** — an **×** button inside the Seeds field appears when it has content and clears it in one click.
+- **Clear manual model** — an **×** button inside the manual model input appears when it has content and clears it in one click.
+
+### Changed
+- **Field clearing** — clearing either field saves the empty value immediately and returns focus to that field.
+
 ## [1.10.1] — Collapsible Recent Models
 
 ### Changed
