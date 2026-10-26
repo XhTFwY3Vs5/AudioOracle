@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.8**
+**Version: 1.9**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -11,6 +11,7 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
   - **Mythic Fate** — rolls the Mythic Game Master Emulator 2e Fate Check (2d10 + odds modifier + chaos modifier).
   - **Mythic Meaning** — rolls Action word pairs (and optionally Descriptor pairs) for inspiration.
 - **Scene Generator** — generate TTRPG scenarios via OpenRouter API, with a fully editable prompt.
+- **Scene reader card** — generated scenes appear inline below the generator with their timestamp, model, and generation time. Copy the text, download it as a timestamped `.txt`, or clear it; the last scene is saved locally.
 - **Always-visible roll stage** — the current result and stop-timer countdown stay pinned to the top of the screen while you scroll through settings or history.
 - **Light and dark themes** — follows your system appearance automatically for comfortable bedtime use.
 - **Touch-friendly controls** — large tap targets for history entries and buttons, plus safe-area padding for notched phones.
@@ -23,12 +24,12 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 - **Keyboard shortcuts** — `Space` start/stop, `R` roll once
 - **Customizable interval and optional timer.**
 - **Screen wake lock** — keeps the screen on during sessions, and re-acquires after tab switches.
-- **Settings persistence** — phrases, mode, odds, chaos, voice, rate, pitch, mute, dim screen, history, and more are saved locally.
+- **Settings persistence** — phrases, mode, odds, chaos, voice, rate, pitch, mute, dim screen, history, last scene, and more are saved locally.
 
 ## How to Use
 
 1. Save the provided HTML as `AudioOracle.html` and open it in a modern browser.
-2. To use the Scene Generator, enter your OpenRouter API key, optionally provide seed ideas, and optionally edit the full prompt under *Edit full prompt (advanced)*. You can also open **Tome of Adventure Design seeds**, pick categories, and click **Roll Seeds**; **Sketch (no API)** turns the seeds into a local bullet scenario without generating.
+2. To use the Scene Generator, enter your OpenRouter API key, optionally provide seed ideas, and optionally edit the full prompt under *Edit full prompt (advanced)*. You can also open **Tome of Adventure Design seeds**, pick categories, and click **Roll Seeds**; **Sketch (no API)** turns the seeds into a local bullet scenario without generating. Click **Generate Scenario** to create a scene; it appears in a reader card below the generator with its timestamp, model, and generation time. Use **Download .txt** to save a timestamped copy.
 3. Pick a mode.
    - **Standard**: edit the phrase list. Optional weighted syntax `[3] yes`.
    - **Mythic Fate**: set Odds (Certain … Impossible) and Chaos Factor (1–9).
@@ -57,6 +58,17 @@ For quiet or low-light sessions, tick **Mute audio** to silence speech while the
 - **Generate Scenario** — click to generate a bullet-point TTRPG opening scenario using OpenRouter models.
 - **Fetch Models** — load a list of free models from OpenRouter.
 - **OpenRouter** — requires an OpenRouter account (free tier has many free models available).
+
+#### Scene card and exports
+
+Generated scenes appear in an inline reader card directly below the Scene Generator, not in a pop-up:
+
+- The header shows when the scene was generated, which model produced it, and how long the request took. Fast responses use `xxx.x ms`; longer responses switch to seconds.
+- Bullet scenes are rendered as spaced, readable points instead of raw pre-wrapped text.
+- **Download .txt** saves a timestamped file named `audio-oracle-scene-YYYY-MM-DD_HHMMSS.txt`. The file includes the generation time, model, generation duration, any seeds used, and the scene text.
+- **Copy** copies the scene text to the clipboard.
+- **Clear** removes the card.
+- The last scene is stored locally and reappears when you reload the page.
 
 #### Tome of Adventure Design seeds
 

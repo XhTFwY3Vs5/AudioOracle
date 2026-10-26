@@ -2,6 +2,22 @@
 
 All notable changes to Audio Oracle.
 
+## [1.9] — Scene Reader Card
+
+### Added
+- **Inline scene reader card** — generated scenarios now appear directly below the Scene Generator as a proper reader card with a header, readable bullet points, and actions, instead of a plain box at the top of the page.
+- **One-click download** — **Download .txt** saves the scene as `audio-oracle-scene-YYYY-MM-DD_HHMMSS.txt`, including the generation time, model, generation duration, seeds, and scene text.
+- **Copy scene** — copy the current scene to the clipboard from the card.
+- **Generation timing** — the scene card and status text show how long the request took, using `xxx.x ms` for fast responses and seconds for longer ones.
+
+### Changed
+- **Scene response placement** — the scene card sits in the normal page flow beneath the generator, so it no longer appears as a detached box above the sticky roll stage.
+- **Scene persistence** — the last generated scene and its metadata are saved locally and restored on reload.
+- **Scene typography** — bullet scenes render as a spaced list with hanging bullets instead of raw pre-wrapped text.
+
+### Fixed
+- **Scene visibility** — the card scrolls into view after generation when it would otherwise be off-screen.
+
 ## [1.8] — Focused Sessions
 
 ### Added

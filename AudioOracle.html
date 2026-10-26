@@ -60,44 +60,107 @@
 
         .logo { width: 120px; height: 120px; }
 
-        /* Scene panel */
-        #scene-panel {
+        /* Generated scene reader card */
+        #scene-card {
             width: 100%;
             background: var(--color-surface);
             border: 1px solid var(--color-border);
+            border-left: 3px solid var(--color-success);
             border-radius: var(--border-radius);
-            padding: var(--spacing-medium);
-            display: none;
-            position: relative;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
         }
-        #scene-panel.visible { display: block; }
-        #scene-text {
-            font-size: 1.05em;
-            line-height: 1.5;
-            padding-right: 28px;
-            color: var(--color-text);
-            white-space: pre-wrap;
+        .scene-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--spacing-small);
+            padding: 10px 12px;
+            background: rgba(40, 167, 69, 0.05);
+            border-bottom: 1px solid var(--color-border);
+        }
+        .scene-card-heading { min-width: 0; }
+        .scene-card-title {
             margin: 0;
+            font-size: 0.78em;
+            line-height: 1.2;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--color-success-text);
         }
-        #scene-clear {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 44px;
-            height: 44px;
+        .scene-card-meta {
+            margin: 4px 0 0;
+            font-size: 0.78em;
+            line-height: 1.3;
+            color: var(--color-muted);
+            overflow-wrap: anywhere;
+        }
+        .scene-card-tools {
             display: flex;
             align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+        .scene-tool {
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
+            min-height: 40px;
+            padding: 6px 10px;
+            font-size: 0.8em;
+            font-weight: 600;
+            color: var(--color-success-text);
             background: transparent;
-            border: none;
-            border-radius: 0 var(--border-radius) 0 var(--border-radius);
-            color: var(--color-muted);
-            font-size: 1.4em;
+            border: 1px solid currentColor;
+            border-radius: 4px;
             cursor: pointer;
+        }
+        .scene-tool:hover { background: rgba(40, 167, 69, 0.1); }
+        .scene-tool-icon {
+            width: 40px;
             padding: 0;
+            font-size: 1.25em;
+            font-weight: 400;
+            color: var(--color-muted);
+            border-color: var(--color-border);
+        }
+        .scene-tool-icon:hover {
+            color: var(--color-danger);
+            background: var(--color-hover);
+        }
+        .scene-content {
+            padding: var(--spacing-medium);
+            font-size: 1.02em;
+            line-height: 1.6;
+            color: var(--color-text);
+        }
+        .scene-points {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 10px;
+        }
+        .scene-points li {
+            position: relative;
+            padding-left: 18px;
+        }
+        .scene-points li::before {
+            content: "◆";
+            position: absolute;
+            left: 0;
+            top: 0.55em;
+            color: var(--color-success-text);
+            font-size: 0.65em;
             line-height: 1;
         }
-        #scene-clear:hover { color: var(--color-danger); }
+        .scene-content p {
+            margin: 0 0 0.85em;
+            white-space: pre-wrap;
+        }
+        .scene-content p:last-child { margin-bottom: 0; }
 
         /* Sticky stage: the result and countdown stay visible while the page scrolls. */
         .stage {
@@ -488,6 +551,7 @@
                 background: rgba(79, 192, 106, 0.06);
                 border-color: rgba(79, 192, 106, 0.25);
             }
+            .scene-card-header { background: rgba(111, 214, 138, 0.06); }
             button.secondary:hover { background: rgba(77, 159, 255, 0.15); }
         }
     </style>
@@ -501,12 +565,6 @@
         <h1 class="sr-only">Audio Oracle</h1>
 
         <img src="img/audioOracleLogo.webp" alt="Audio Oracle Logo" class="logo">
-
-        <!-- Scene panel (hidden until generated) -->
-        <div id="scene-panel">
-            <button id="scene-clear" type="button" title="Clear scene" aria-label="Clear scene">×</button>
-            <p id="scene-text" aria-live="polite"></p>
-        </div>
 
         <!-- Sticky stage: result and countdown stay visible while scrolling -->
         <div class="stage">
@@ -594,6 +652,22 @@
             </div>
             <div id="scene-status" role="status" aria-live="polite"></div>
         </details>
+
+        <!-- Generated scene reader: inline below the generator, not a modal -->
+        <section id="scene-card" class="scene-card hidden" aria-labelledby="scene-card-title">
+            <header class="scene-card-header">
+                <div class="scene-card-heading">
+                    <h2 id="scene-card-title" class="scene-card-title">Scene</h2>
+                    <p id="scene-meta" class="scene-card-meta"></p>
+                </div>
+                <div class="scene-card-tools">
+                    <button type="button" class="scene-tool" id="scene-download" title="Download this scene as a timestamped .txt file">Download .txt</button>
+                    <button type="button" class="scene-tool" id="scene-copy" title="Copy the scene text">Copy</button>
+                    <button type="button" class="scene-tool scene-tool-icon" id="scene-clear" title="Clear scene" aria-label="Clear scene">×</button>
+                </div>
+            </header>
+            <div id="scene-content" class="scene-content" aria-live="polite"></div>
+        </section>
 
         <form class="oracle-form" onsubmit="return false;">
 
@@ -705,14 +779,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.8</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.9</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.8';
+    const VERSION = '1.9';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -797,8 +871,11 @@ yes, and...</textarea>
         historyList: $('historyList'),
         historyEmpty:$('historyEmpty'),
         // Scene generator
-        scenePanel:     $('scene-panel'),
-        sceneText:      $('scene-text'),
+        sceneCard:      $('scene-card'),
+        sceneMeta:      $('scene-meta'),
+        sceneContent:   $('scene-content'),
+        sceneDownload:  $('scene-download'),
+        sceneCopy:      $('scene-copy'),
         sceneClear:     $('scene-clear'),
         sceneApiKey:    $('scene-api-key'),
         sceneKeyToggle: $('scene-key-toggle'),
@@ -928,6 +1005,8 @@ yes, and...</textarea>
         sceneModelManual: '',
         sceneSeeds: '',
         scenePrompt: '',
+        sceneText: '',
+        sceneMeta: null,
         tomeCats: ['place', 'who', 'mission', 'complication'],
         sceneCooldownUntil: 0,
         sceneCooldownId: null,
@@ -982,6 +1061,17 @@ yes, and...</textarea>
             && !isLegacyPrompt(raw.scenePrompt)
             ? raw.scenePrompt
             : '';
+        state.sceneText = typeof raw.sceneText === 'string' ? raw.sceneText : '';
+        const rawSceneMeta = raw.sceneMeta;
+        state.sceneMeta = rawSceneMeta && typeof rawSceneMeta === 'object'
+            && Number.isFinite(rawSceneMeta.createdAt)
+            ? {
+                createdAt: rawSceneMeta.createdAt,
+                model: typeof rawSceneMeta.model === 'string' ? rawSceneMeta.model : '',
+                seeds: typeof rawSceneMeta.seeds === 'string' ? rawSceneMeta.seeds : '',
+                durationMs: Number.isFinite(rawSceneMeta.durationMs) ? rawSceneMeta.durationMs : null,
+            }
+            : (state.sceneText ? { createdAt: Date.now(), model: '', seeds: '', durationMs: null } : null);
     }
 
     function saveSettings() {
@@ -1007,6 +1097,8 @@ yes, and...</textarea>
             sceneSeeds:  state.sceneSeeds,
             tomeCats:    state.tomeCats,
             scenePrompt: state.scenePrompt,
+            sceneText:   state.sceneText,
+            sceneMeta:   state.sceneMeta,
         };
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(blob)); }
         catch (_) { /* storage disabled — non-fatal */ }
@@ -1681,7 +1773,10 @@ yes, and...</textarea>
         if (flavor) bullets.push(sentence(`A detail to remember: ${flavor}`));
         if (!bullets.length) bullets.push(seeds);
 
-        showScene(bullets.map(line => `- ${line}`).join('\n'));
+        showScene(bullets.map(line => `- ${line}`).join('\n'), {
+            model: 'Local sketch (no API)',
+            seeds,
+        });
         setSceneStatus('Local sketch from table seeds — no API call was made.', 'success');
     }
 
@@ -1694,14 +1789,174 @@ yes, and...</textarea>
         els.sceneStatus.className = type || '';
     }
 
-    function showScene(text) {
-        els.sceneText.textContent = text;
-        els.scenePanel.classList.add('visible');
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function formatSceneTime(ts) {
+        const date = new Date(ts);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit',
+        });
+    }
+
+    function formatSceneDuration(ms) {
+        if (!Number.isFinite(ms)) return '';
+        return ms < 1000 ? `${ms.toFixed(1)} ms` : `${(ms / 1000).toFixed(1)} s`;
+    }
+
+    function sceneFileStamp(ts) {
+        const date = new Date(ts);
+        if (Number.isNaN(date.getTime())) return 'unknown-date';
+        return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+            + `_${pad2(date.getHours())}${pad2(date.getMinutes())}${pad2(date.getSeconds())}`;
+    }
+
+    function sceneFileText() {
+        const meta = state.sceneMeta || {};
+        const createdAt = meta.createdAt || Date.now();
+        const lines = [
+            'Audio Oracle — Scenario',
+            `Generated: ${formatSceneTime(createdAt)}`,
+        ];
+        if (meta.model) lines.push(`Model: ${meta.model}`);
+        if (Number.isFinite(meta.durationMs)) lines.push(`Generation time: ${formatSceneDuration(meta.durationMs)}`);
+        if (meta.seeds) lines.push('', 'Seeds:', meta.seeds);
+        lines.push('', '---', '', state.sceneText.trim(), '');
+        return lines.join('\n');
+    }
+
+    function renderSceneBody(text) {
+        els.sceneContent.replaceChildren();
+        const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+        const hasBullets = lines.some(line => /^\s*[-•]\s+/.test(line));
+        if (!hasBullets) {
+            const p = document.createElement('p');
+            p.textContent = String(text).trim();
+            els.sceneContent.appendChild(p);
+            return;
+        }
+        const ul = document.createElement('ul');
+        ul.className = 'scene-points';
+        let prose = null;
+        for (const raw of lines) {
+            const line = raw.trim();
+            if (!line) { prose = null; continue; }
+            const bullet = line.match(/^[-•]\s+(.*)$/);
+            if (bullet) {
+                const li = document.createElement('li');
+                li.textContent = bullet[1];
+                ul.appendChild(li);
+                prose = null;
+            } else if (prose) {
+                prose.textContent += ` ${line}`;
+            } else {
+                prose = document.createElement('li');
+                prose.textContent = line;
+                ul.appendChild(prose);
+            }
+        }
+        els.sceneContent.appendChild(ul);
+    }
+
+    function renderScene() {
+        const text = (state.sceneText || '').trim();
+        if (!text) {
+            els.sceneCard.classList.add('hidden');
+            els.sceneContent.replaceChildren();
+            els.sceneMeta.textContent = '';
+            return;
+        }
+        const meta = state.sceneMeta || {};
+        const bits = [];
+        if (meta.createdAt) bits.push(`Generated ${formatSceneTime(meta.createdAt)}`);
+        if (meta.model) bits.push(meta.model);
+        if (Number.isFinite(meta.durationMs)) bits.push(formatSceneDuration(meta.durationMs));
+        els.sceneMeta.textContent = bits.join(' · ');
+        els.sceneCard.classList.remove('hidden');
+        renderSceneBody(text);
+    }
+
+    function revealScene() {
+        const rect = els.sceneCard.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        if (rect.top < 0 || rect.bottom > vh) {
+            const reduceMotion = window.matchMedia
+                && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            els.sceneCard.scrollIntoView({
+                behavior: reduceMotion ? 'auto' : 'smooth',
+                block: 'nearest',
+            });
+        }
+    }
+
+    function showScene(text, meta = {}) {
+        state.sceneText = String(text || '');
+        state.sceneMeta = {
+            createdAt: meta.createdAt || Date.now(),
+            model: meta.model || '',
+            seeds: (meta.seeds || '').trim(),
+            durationMs: Number.isFinite(meta.durationMs) ? meta.durationMs : null,
+        };
+        renderScene();
+        saveSettings();
+        revealScene();
     }
 
     function hideScene() {
-        els.scenePanel.classList.remove('visible');
-        els.sceneText.textContent = '';
+        state.sceneText = '';
+        state.sceneMeta = null;
+        renderScene();
+        saveSettings();
+        setSceneStatus('Scene cleared.');
+    }
+
+    function flashSceneButton(button, label) {
+        if (!button) return;
+        if (!button.dataset.label) button.dataset.label = button.textContent;
+        button.textContent = label;
+        clearTimeout(button._flashId);
+        button._flashId = setTimeout(() => {
+            button.textContent = button.dataset.label;
+        }, 1600);
+    }
+
+    function downloadScene() {
+        if (!state.sceneText) return;
+        const meta = state.sceneMeta || {};
+        const stamp = sceneFileStamp(meta.createdAt || Date.now());
+        const blob = new Blob([sceneFileText()], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `audio-oracle-scene-${stamp}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        flashSceneButton(els.sceneDownload, 'Downloaded');
+    }
+
+    async function copyScene() {
+        if (!state.sceneText) return;
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(state.sceneText);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = state.sceneText;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+            }
+            flashSceneButton(els.sceneCopy, 'Copied');
+        } catch (_) {
+            setSceneStatus('Copy failed. Select the scene text and copy it manually.', 'error');
+        }
     }
 
     async function fetchFreeModels() {
@@ -1793,6 +2048,7 @@ yes, and...</textarea>
 
         setSceneStatus('Generating…');
         els.sceneGenerateBtn.disabled = true;
+        const requestStartedAt = performance.now();
         try {
             const res = await fetch(OPENROUTER_CHAT_URL, {
                 method: 'POST',
@@ -1814,6 +2070,7 @@ yes, and...</textarea>
                 throw new Error(`HTTP ${res.status}: ${err.slice(0, 200)}`);
             }
             const data = await res.json();
+            const elapsedMs = performance.now() - requestStartedAt;
             const content = data.choices?.[0]?.message?.content;
             if (!content) throw new Error('Empty response from model.');
             // Clean up stray markdown: strip bold/italic, replace numbered lists with bullets, keep only bullet format
@@ -1831,8 +2088,12 @@ yes, and...</textarea>
                 if (!trimmed.startsWith('- ')) return '- ' + trimmed;
                 return trimmed;
             }).join('\n');
-            showScene(cleaned);
-            setSceneStatus(`Scenario generated with ${data.model || model}.`, 'success');
+            showScene(cleaned, {
+                model: data.model || model,
+                seeds,
+                durationMs: elapsedMs,
+            });
+            setSceneStatus(`Scenario generated with ${data.model || model} in ${formatSceneDuration(elapsedMs)}.`, 'success');
             state.sceneCooldownUntil = 0;
             startCooldown();
         } catch (e) {
@@ -1926,6 +2187,8 @@ yes, and...</textarea>
 
         els.sceneGenerateBtn.addEventListener('click', generateScene);
         els.sceneFetchModelsBtn.addEventListener('click', fetchFreeModels);
+        els.sceneDownload.addEventListener('click', downloadScene);
+        els.sceneCopy.addEventListener('click', copyScene);
         els.sceneClear.addEventListener('click', hideScene);
         els.tomeRollSeeds.addEventListener('click', rollTomeSeedsIntoField);
         els.tomeSketch.addEventListener('click', sketchFromSeeds);
@@ -1954,6 +2217,7 @@ yes, and...</textarea>
         loadSettings();
         stateToForm();
         updateHint();
+        renderScene();
         renderHistory();
         wireEvents();
 
