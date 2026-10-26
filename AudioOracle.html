@@ -270,16 +270,33 @@
         textarea#scene-seeds { min-height: 60px; font-family: inherit; font-size: 0.95em; }
 
         .recent-models {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-top: 6px;
+            margin-top: 2px;
         }
-        .recent-models-label {
+        details.scene-generator .recent-models-summary {
+            padding: 4px 0;
             font-size: 0.78em;
             font-weight: 600;
             letter-spacing: 0.03em;
             color: var(--color-muted);
+        }
+        details.scene-generator .recent-models-summary:hover {
+            color: var(--color-text-soft);
+        }
+        .recent-models-summary::marker { color: var(--color-muted); }
+        .recent-models-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            margin-left: 4px;
+            padding: 0 6px;
+            color: var(--color-success-text);
+            background: rgba(40, 167, 69, 0.1);
+            border-radius: 999px;
+            font-size: 0.9em;
+            font-variant-numeric: tabular-nums;
+            vertical-align: middle;
         }
         .recent-models-list {
             display: flex;
@@ -289,6 +306,7 @@
             margin: 0;
             padding: 0;
         }
+        .recent-models[open] .recent-models-list { margin-top: 6px; }
         .recent-model {
             display: inline-flex;
             align-items: center;
@@ -663,10 +681,10 @@
                 <select id="scene-model">
                     <option value="openrouter/free">openrouter/free (auto-select free model)</option>
                 </select>
-                <div id="recent-models" class="recent-models hidden" role="group" aria-labelledby="recent-models-label">
-                    <span id="recent-models-label" class="recent-models-label">Recently used models</span>
+                <details id="recent-models" class="recent-models hidden">
+                    <summary class="recent-models-summary">Recently used models <span id="recent-models-count" class="recent-models-count"></span></summary>
                     <ul id="recent-models-list" class="recent-models-list"></ul>
-                </div>
+                </details>
                 <input id="scene-model-manual" type="text" placeholder="Or type a model ID manually (e.g. meta-llama/llama-3.1-8b-instruct:free)" style="margin-top: 4px;">
             </div>
 
@@ -846,14 +864,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.10</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.10.1</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.10';
+    const VERSION = '1.10.1';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -952,6 +970,7 @@ yes, and...</textarea>
         sceneModel:     $('scene-model'),
         sceneModelManual: $('scene-model-manual'),
         recentModels:   $('recent-models'),
+        recentModelsCount: $('recent-models-count'),
         recentModelsList: $('recent-models-list'),
         sceneSeeds:     $('scene-seeds'),
         tomeRollSeeds:  $('tome-roll-seeds'),
@@ -1943,6 +1962,8 @@ yes, and...</textarea>
         const recent = state.recentModels.filter(model => model !== DEFAULT_SCENE_MODEL);
         els.recentModelsList.replaceChildren();
         els.recentModels.classList.toggle('hidden', recent.length === 0);
+        els.recentModelsCount.textContent = recent.length ? String(recent.length) : '';
+        if (!recent.length) els.recentModels.open = false;
 
         recent.forEach(model => {
             const item = document.createElement('li');
@@ -2414,6 +2435,7 @@ yes, and...</textarea>
         loadSettings();
         state.recentModels = readRecentModels();
         stateToForm();
+        els.recentModels.open = false;
         updateHint();
         renderScene();
         renderHistory();

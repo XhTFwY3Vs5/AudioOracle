@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.10**
+**Version: 1.10.1**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -12,7 +12,7 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
   - **Mythic Meaning** — rolls Action word pairs (and optionally Descriptor pairs) for inspiration.
 - **Scene Generator** — generate TTRPG scenarios via OpenRouter API, with a fully editable prompt.
 - **Scene reader card** — generated scenes appear inline below the generator with their timestamp, model, and generation time. Copy the text, download it as a timestamped `.txt`, or clear it; the last scene is saved locally.
-- **Recent models** — models that successfully generate a scene are remembered in a cookie (up to eight) and added to the Model drop-down under **Recently used**, including after **Fetch Models**. Remove one with the **×** button on its recent-model chip.
+- **Recent models** — models that successfully generate a scene are remembered in a cookie (up to eight) and added to the Model drop-down under **Recently used**, including after **Fetch Models**. The collapsible chip list shows a count; remove one with the **×** button on its recent-model chip.
 - **Always-visible roll stage** — the current result and stop-timer countdown stay pinned to the top of the screen while you scroll through settings or history.
 - **Light and dark themes** — follows your system appearance automatically for comfortable bedtime use.
 - **Touch-friendly controls** — large tap targets for history entries and buttons, plus safe-area padding for notched phones.
@@ -75,7 +75,7 @@ Generated scenes appear in an inline reader card directly below the Scene Genera
 
 After a scene generates successfully, the model that produced it is saved in a browser cookie (up to eight entries) and added to the **Model** drop-down under **Recently used**. Recent models survive page reloads and are re-added after **Fetch Models**.
 
-The **Recently used models** row below the Model selector lists the same entries. Click the **×** on a chip to remove that model from the recent list, the **Recently used** group in the drop-down, and the cookie. If the model is also in the current **Free models** list, it remains available there.
+The **Recently used models** section below the Model selector is collapsed by default and shows a count in its summary. Expand it and click the **×** on a chip to remove that model from the recent list, the **Recently used** group in the drop-down, and the cookie. If the model is also in the current **Free models** list, it remains available there.
 
 Cookies must be enabled for the list to persist; some browsers restrict cookies on local `file://` pages.
 

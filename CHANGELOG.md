@@ -2,6 +2,11 @@
 
 All notable changes to Audio Oracle.
 
+## [1.10.1] — Collapsible Recent Models
+
+### Changed
+- **Recently used models** — the recent-model chips now sit inside a collapsible section that starts collapsed on every page load and shows a count in the summary, so it takes up less room in the Scene Generator. Expand the section to remove entries with **×**.
+
 ## [1.10] — Recent Models
 
 ### Added
