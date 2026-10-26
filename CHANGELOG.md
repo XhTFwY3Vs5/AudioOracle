@@ -2,6 +2,15 @@
 
 All notable changes to Audio Oracle.
 
+## [1.10] — Recent Models
+
+### Added
+- **Recent models in a cookie** — models that successfully generate a scene are remembered in a browser cookie (up to eight entries) and added to the Model drop-down under **Recently used**.
+- **Recent-model removal** — a **Recently used models** row below the selector shows each saved model with an **×** button that removes it from the recent list, the drop-down, and the cookie.
+
+### Changed
+- **Model drop-down rebuilds** — recent models are restored on page load and re-added after **Fetch Models**, alongside the free-model list without duplicate entries.
+
 ## [1.9] — Scene Reader Card
 
 ### Added

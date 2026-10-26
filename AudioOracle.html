@@ -269,6 +269,69 @@
         }
         textarea#scene-seeds { min-height: 60px; font-family: inherit; font-size: 0.95em; }
 
+        .recent-models {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .recent-models-label {
+            font-size: 0.78em;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: var(--color-muted);
+        }
+        .recent-models-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .recent-model {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            min-height: 40px;
+            overflow: hidden;
+            color: var(--color-text-soft);
+            background: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 999px;
+            font-size: 0.78em;
+        }
+        .recent-model-name {
+            min-width: 0;
+            padding: 9px 4px 9px 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .recent-model-remove {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            align-self: stretch;
+            width: 40px;
+            min-width: 40px;
+            padding: 0;
+            margin-left: 2px;
+            color: var(--color-muted);
+            background: transparent;
+            border: none;
+            border-left: 1px solid var(--color-border);
+            border-radius: 0;
+            font-size: 1.1em;
+            font-weight: 400;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .recent-model-remove:hover {
+            color: var(--color-danger);
+            background: var(--color-hover);
+        }
+
         input[type="range"] { padding: 0; }
 
         .range-value {
@@ -600,6 +663,10 @@
                 <select id="scene-model">
                     <option value="openrouter/free">openrouter/free (auto-select free model)</option>
                 </select>
+                <div id="recent-models" class="recent-models hidden" role="group" aria-labelledby="recent-models-label">
+                    <span id="recent-models-label" class="recent-models-label">Recently used models</span>
+                    <ul id="recent-models-list" class="recent-models-list"></ul>
+                </div>
                 <input id="scene-model-manual" type="text" placeholder="Or type a model ID manually (e.g. meta-llama/llama-3.1-8b-instruct:free)" style="margin-top: 4px;">
             </div>
 
@@ -779,18 +846,21 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.9</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.10</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.9';
+    const VERSION = '1.10';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
     const SCENE_COOLDOWN_MS = 10000;
+    const RECENT_MODELS_COOKIE = 'audioOracleRecentModels';
+    const RECENT_MODELS_LIMIT = 8;
+    const DEFAULT_SCENE_MODEL = 'openrouter/free';
 
     // The full scene prompt is user-editable. Everything before the separator is the
     // system message, everything after it is the user message. {{seeds}} is replaced
@@ -881,6 +951,8 @@ yes, and...</textarea>
         sceneKeyToggle: $('scene-key-toggle'),
         sceneModel:     $('scene-model'),
         sceneModelManual: $('scene-model-manual'),
+        recentModels:   $('recent-models'),
+        recentModelsList: $('recent-models-list'),
         sceneSeeds:     $('scene-seeds'),
         tomeRollSeeds:  $('tome-roll-seeds'),
         tomeSketch:     $('tome-sketch'),
@@ -1001,13 +1073,15 @@ yes, and...</textarea>
         history:    [],
         // Scene generator
         sceneApiKey: '',
-        sceneModel: 'openrouter/free',
+        sceneModel: DEFAULT_SCENE_MODEL,
         sceneModelManual: '',
         sceneSeeds: '',
         scenePrompt: '',
         sceneText: '',
         sceneMeta: null,
         tomeCats: ['place', 'who', 'mission', 'complication'],
+        freeModels: [],
+        recentModels: [],
         sceneCooldownUntil: 0,
         sceneCooldownId: null,
     };
@@ -1050,7 +1124,7 @@ yes, and...</textarea>
         state.history    = Array.isArray(raw.history) ? raw.history.slice(0, HISTORY_LIMIT) : [];
         state.dimScreen  = !!raw.dimScreen;
         state.sceneApiKey = typeof raw.sceneApiKey === 'string' ? raw.sceneApiKey : '';
-        state.sceneModel  = typeof raw.sceneModel === 'string' ? raw.sceneModel : 'openrouter/free';
+        state.sceneModel  = typeof raw.sceneModel === 'string' ? raw.sceneModel : DEFAULT_SCENE_MODEL;
         state.sceneModelManual = typeof raw.sceneModelManual === 'string' ? raw.sceneModelManual : '';
         state.sceneSeeds  = typeof raw.sceneSeeds === 'string' ? raw.sceneSeeds : '';
         state.tomeCats    = Array.isArray(raw.tomeCats)
@@ -1511,13 +1585,14 @@ yes, and...</textarea>
         els.rateVal.textContent  = Number(state.rate).toFixed(2);
         els.pitchVal.textContent = Number(state.pitch).toFixed(2);
         els.sceneApiKey.value = state.sceneApiKey;
-        els.sceneModel.value  = state.sceneModel;
         els.sceneModelManual.value = state.sceneModelManual;
         els.sceneSeeds.value  = state.sceneSeeds;
         document.querySelectorAll('#tome-options input[data-tome]').forEach(cb => {
             cb.checked = state.tomeCats.includes(cb.dataset.tome);
         });
         els.sceneFullPrompt.value = state.scenePrompt || DEFAULT_SCENE_PROMPT;
+        renderModelOptions();
+        renderRecentModels();
         syncModeVisibility();
         updateDimOverlay();
     }
@@ -1789,6 +1864,133 @@ yes, and...</textarea>
         els.sceneStatus.className = type || '';
     }
 
+    function readRecentModels() {
+        const prefix = `${RECENT_MODELS_COOKIE}=`;
+        const entry = document.cookie
+            .split(';')
+            .map(part => part.trim())
+            .find(part => part.startsWith(prefix));
+        if (!entry) return [];
+        try {
+            const parsed = JSON.parse(decodeURIComponent(entry.slice(prefix.length)));
+            if (!Array.isArray(parsed)) return [];
+            return [...new Set(parsed
+                .filter(model => typeof model === 'string')
+                .map(model => model.trim())
+                .filter(model => model && model !== DEFAULT_SCENE_MODEL))]
+                .slice(0, RECENT_MODELS_LIMIT);
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function writeRecentModels(models) {
+        const base = `${RECENT_MODELS_COOKIE}=`;
+        if (!models.length) {
+            document.cookie = `${base}; Path=/; Max-Age=0; SameSite=Lax`;
+            return;
+        }
+        document.cookie = `${base}${encodeURIComponent(JSON.stringify(models))}`
+            + '; Path=/; Max-Age=31536000; SameSite=Lax';
+    }
+
+    function modelLabel(model) {
+        const known = state.freeModels.find(entry => entry.id === model);
+        return known && known.name && known.name !== model
+            ? `${known.name} (${model})`
+            : model;
+    }
+
+    function renderModelOptions(preferred) {
+        const wanted = typeof preferred === 'string' && preferred
+            ? preferred
+            : (state.sceneModel || DEFAULT_SCENE_MODEL);
+        els.sceneModel.replaceChildren();
+
+        const addOption = (value, label, parent = els.sceneModel) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            parent.appendChild(option);
+        };
+
+        addOption(DEFAULT_SCENE_MODEL, 'openrouter/free (auto-select free model)');
+
+        const recent = state.recentModels.filter(model => model !== DEFAULT_SCENE_MODEL);
+        if (recent.length) {
+            const group = document.createElement('optgroup');
+            group.label = 'Recently used';
+            recent.forEach(model => addOption(model, modelLabel(model), group));
+            els.sceneModel.appendChild(group);
+        }
+
+        if (state.freeModels.length) {
+            const group = document.createElement('optgroup');
+            group.label = 'Free models';
+            const recentSet = new Set(recent);
+            state.freeModels
+                .filter(model => !recentSet.has(model.id))
+                .forEach(model => addOption(model.id, modelLabel(model.id), group));
+            if (group.children.length) els.sceneModel.appendChild(group);
+        }
+
+        const available = [...els.sceneModel.options].some(option => option.value === wanted);
+        els.sceneModel.value = available ? wanted : DEFAULT_SCENE_MODEL;
+        state.sceneModel = els.sceneModel.value;
+    }
+
+    function renderRecentModels() {
+        const recent = state.recentModels.filter(model => model !== DEFAULT_SCENE_MODEL);
+        els.recentModelsList.replaceChildren();
+        els.recentModels.classList.toggle('hidden', recent.length === 0);
+
+        recent.forEach(model => {
+            const item = document.createElement('li');
+            item.className = 'recent-model';
+
+            const name = document.createElement('span');
+            name.className = 'recent-model-name';
+            name.textContent = modelLabel(model);
+            name.title = modelLabel(model);
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'recent-model-remove';
+            remove.textContent = '×';
+            remove.title = `Remove ${model} from recent models`;
+            remove.setAttribute('aria-label', `Remove ${model} from recent models`);
+            remove.addEventListener('click', () => removeRecentModel(model));
+
+            item.append(name, remove);
+            els.recentModelsList.appendChild(item);
+        });
+    }
+
+    function rememberRecentModel(model) {
+        const normalized = String(model || '').trim();
+        if (!normalized || normalized === DEFAULT_SCENE_MODEL) return;
+        const next = [normalized, ...state.recentModels.filter(entry => entry !== normalized)]
+            .slice(0, RECENT_MODELS_LIMIT);
+        state.recentModels = next;
+        writeRecentModels(next);
+        renderModelOptions(els.sceneModel.value);
+        renderRecentModels();
+    }
+
+    function removeRecentModel(model) {
+        const normalized = String(model || '').trim();
+        if (!normalized) return;
+        const next = state.recentModels.filter(entry => entry !== normalized);
+        if (next.length === state.recentModels.length) return;
+        const current = els.sceneModel.value;
+        state.recentModels = next;
+        writeRecentModels(next);
+        renderModelOptions(current);
+        renderRecentModels();
+        saveSettings();
+        setSceneStatus(`Removed ${normalized} from recent models.`, 'success');
+    }
+
     function pad2(n) { return String(n).padStart(2, '0'); }
 
     function formatSceneTime(ts) {
@@ -1977,15 +2179,9 @@ yes, and...</textarea>
             });
             if (!free.length) { setSceneStatus('No free models found. Using default.', 'error'); return; }
             const current = els.sceneModel.value;
-            els.sceneModel.innerHTML = '<option value="openrouter/free">openrouter/free (auto-select free model)</option>';
             free.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            free.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.id;
-                opt.textContent = `${m.name || m.id} (${m.id})`;
-                els.sceneModel.appendChild(opt);
-            });
-            if ([...els.sceneModel.options].some(o => o.value === current)) els.sceneModel.value = current;
+            state.freeModels = free.map(m => ({ id: m.id, name: m.name || '' }));
+            renderModelOptions(current);
             setSceneStatus(`${free.length} free model${free.length === 1 ? '' : 's'} loaded.`, 'success');
         } catch (e) {
             setSceneStatus(`Failed to fetch models: ${e.message}. You can type a model ID manually.`, 'error');
@@ -2093,6 +2289,7 @@ yes, and...</textarea>
                 seeds,
                 durationMs: elapsedMs,
             });
+            rememberRecentModel(data.model || model);
             setSceneStatus(`Scenario generated with ${data.model || model} in ${formatSceneDuration(elapsedMs)}.`, 'success');
             state.sceneCooldownUntil = 0;
             startCooldown();
@@ -2215,6 +2412,7 @@ yes, and...</textarea>
 
     function init() {
         loadSettings();
+        state.recentModels = readRecentModels();
         stateToForm();
         updateHint();
         renderScene();

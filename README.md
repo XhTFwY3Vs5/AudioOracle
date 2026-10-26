@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.9**
+**Version: 1.10**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -12,6 +12,7 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
   - **Mythic Meaning** — rolls Action word pairs (and optionally Descriptor pairs) for inspiration.
 - **Scene Generator** — generate TTRPG scenarios via OpenRouter API, with a fully editable prompt.
 - **Scene reader card** — generated scenes appear inline below the generator with their timestamp, model, and generation time. Copy the text, download it as a timestamped `.txt`, or clear it; the last scene is saved locally.
+- **Recent models** — models that successfully generate a scene are remembered in a cookie (up to eight) and added to the Model drop-down under **Recently used**, including after **Fetch Models**. Remove one with the **×** button on its recent-model chip.
 - **Always-visible roll stage** — the current result and stop-timer countdown stay pinned to the top of the screen while you scroll through settings or history.
 - **Light and dark themes** — follows your system appearance automatically for comfortable bedtime use.
 - **Touch-friendly controls** — large tap targets for history entries and buttons, plus safe-area padding for notched phones.
@@ -29,7 +30,7 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 ## How to Use
 
 1. Save the provided HTML as `AudioOracle.html` and open it in a modern browser.
-2. To use the Scene Generator, enter your OpenRouter API key, optionally provide seed ideas, and optionally edit the full prompt under *Edit full prompt (advanced)*. You can also open **Tome of Adventure Design seeds**, pick categories, and click **Roll Seeds**; **Sketch (no API)** turns the seeds into a local bullet scenario without generating. Click **Generate Scenario** to create a scene; it appears in a reader card below the generator with its timestamp, model, and generation time. Use **Download .txt** to save a timestamped copy.
+2. To use the Scene Generator, enter your OpenRouter API key, optionally provide seed ideas, and optionally edit the full prompt under *Edit full prompt (advanced)*. You can also open **Tome of Adventure Design seeds**, pick categories, and click **Roll Seeds**; **Sketch (no API)** turns the seeds into a local bullet scenario without generating. Click **Generate Scenario** to create a scene; it appears in a reader card below the generator with its timestamp, model, and generation time. Use **Download .txt** to save a timestamped copy. Models that generate successfully are remembered under **Recently used** in the Model drop-down.
 3. Pick a mode.
    - **Standard**: edit the phrase list. Optional weighted syntax `[3] yes`.
    - **Mythic Fate**: set Odds (Certain … Impossible) and Chaos Factor (1–9).
@@ -69,6 +70,14 @@ Generated scenes appear in an inline reader card directly below the Scene Genera
 - **Copy** copies the scene text to the clipboard.
 - **Clear** removes the card.
 - The last scene is stored locally and reappears when you reload the page.
+
+#### Recent models
+
+After a scene generates successfully, the model that produced it is saved in a browser cookie (up to eight entries) and added to the **Model** drop-down under **Recently used**. Recent models survive page reloads and are re-added after **Fetch Models**.
+
+The **Recently used models** row below the Model selector lists the same entries. Click the **×** on a chip to remove that model from the recent list, the **Recently used** group in the drop-down, and the cookie. If the model is also in the current **Free models** list, it remains available there.
+
+Cookies must be enabled for the list to persist; some browsers restrict cookies on local `file://` pages.
 
 #### Tome of Adventure Design seeds
 
