@@ -903,14 +903,14 @@ yes, and...</textarea>
             <div class="history-empty" id="historyEmpty">No rolls yet.</div>
         </div>
 
-        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.12</div>
+        <div class="kbd-hint" style="font-size:0.7em;opacity:0.6;">Audio Oracle v1.12.1</div>
 
     </main>
 
     <script>
     "use strict";
 
-    const VERSION = '1.12';
+    const VERSION = '1.12.1';
     const STORAGE_KEY = 'audioOracle.v2';
     const HISTORY_LIMIT = 10;
     const DEFAULT_PHRASES = 'no, and...\nno\nno, but...\nyes, but...\nyes\nyes, and...';
@@ -2328,7 +2328,7 @@ yes, and...</textarea>
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt },
                     ],
-                    max_tokens: 300,
+                    max_tokens: 1000,
                 }),
             });
             if (!res.ok) {

@@ -2,6 +2,11 @@
 
 All notable changes to Audio Oracle.
 
+## [1.12.1] — Fix Scene Truncation
+
+### Fixed
+- **Scene truncation** — increased the maximum token limit for generated scenarios to ensure longer responses are not cut off.
+
 ## [1.12] — Model Selection Sync
 
 ### Changed

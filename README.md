@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.12**
+**Version: 1.12.1**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
