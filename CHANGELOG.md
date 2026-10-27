@@ -2,6 +2,11 @@
 
 All notable changes to Audio Oracle.
 
+## [1.13.0] — Word Seed Generator
+
+### Added
+- **Word Seed Generator** — a new seed generator option below the Tome of Adventure Design tables that picks a specified number (X) of random thematic keywords from `words.txt` (fantasy, sci-fi, horror) and populates the seeds field.
+
 ## [1.12.1] — Fix Scene Truncation
 
 ### Fixed

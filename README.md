@@ -1,6 +1,6 @@
 # Audio Oracle
 
-**Version: 1.12.1**
+**Version: 1.13.0**
 
 A simple, single-file, web-based tool that speaks randomized prompts aloud for solo role-playing. Perfect for bedtime play, walks, or waiting in line — start it, close your eyes, and listen.
 
@@ -19,6 +19,7 @@ A simple, single-file, web-based tool that speaks randomized prompts aloud for s
 - **Light and dark themes** — follows your system appearance automatically for comfortable bedtime use.
 - **Touch-friendly controls** — large tap targets for history entries and buttons, plus safe-area padding for notched phones.
 - **Tome of Adventure Design seeds** — roll concrete scene seeds (place, who, mission, hook, complication, flavor) from 30 curated *Tome of Adventure Design* tables. Includes a local **Sketch (no API)** mode that builds a bullet scenario without any network call.
+- **Word Seed Generator** — pick random thematic keywords from `words.txt` (fantasy, sci-fi, horror) to seed scenarios.
 - **Weighted phrases** — `[3] yes` makes "yes" three times as likely. Fractions and `[0]` (disabled) supported. Fully backward compatible with unweighted lists.
 - **Append meaning words** — in Standard or Fate mode, add a Mythic Action pair to every roll.
 - **Roll history** — last 10 results, timestamped. Click to re-speak.
@@ -97,6 +98,13 @@ Open **Tome of Adventure Design seeds** inside the Scene Generator to roll concr
 **Roll Seeds** replaces the Seeds field with the rolled lines. Edit them freely, then click **Generate Scenario** to feed them to the model. **Sketch (no API)** composes a local bullet scenario from the current seeds (or rolls fresh ones) without calling OpenRouter, so the table tools work completely offline.
 
 The 30 curated tables are embedded in `AudioOracle.html`; no table data is fetched at runtime. The seed roller is opt-in and its categories are saved with your other settings.
+
+#### Word Seed Generator
+
+Open **Word Seed Generator (from words.txt)** inside the Scene Generator to draw a specified number of random thematic keywords (fantasy, sci-fi, and horror vocabulary from `words.txt`) into the seeds field:
+
+- **Number of words (X)** — choose how many words to pick (default 5, adjustable up to 50).
+- **Pick Word Seeds** — populates the Seeds field with comma-separated words. Edit freely or combine with Tome seeds, then generate your scenario.
 
 The table data is derived from *Tome of Adventure Design* by Matt Finch (Frog God Games). It is included here as a local play aid; check the publisher's terms before redistributing this file or the table data. To regenerate the embedded subset from `tome_parser`'s JSON exports, run `python3 tools/build_tome_tables.py --data ../tome_parser/data`.
 
